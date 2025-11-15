@@ -1,6 +1,13 @@
 import { pgTable, uuid, text, integer, timestamp, boolean, jsonb, real, check, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
+// User authentication table
+export const userAuth = pgTable('user_auth', {
+  userId: text('user_id').primaryKey(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 // Profiles table
 export const profiles = pgTable('profiles', {
   id: text('id').primaryKey(),

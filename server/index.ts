@@ -1,6 +1,6 @@
 import express from 'express';
 import { db, pool } from './db.js';
-import { profiles, gameLobbies, lobbyPlayers, chatMessages, achievements, gameSessions, gameEmojis, friendships, userAchievements } from '../shared/schema.js';
+import { profiles, gameLobbies, lobbyPlayers, chatMessages, achievements, gameSessions, gameEmojis, friendships, userAchievements, userAuth } from '../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import cors from 'cors';
@@ -81,10 +81,10 @@ async function startServer() {
         diamondsBalance: 100,
       });
       
-      await pool.query(
-        'INSERT INTO user_auth (user_id, password_hash) VALUES ($1, $2)',
-        [userId, hashedPassword]
-      );
+      await db.insert(userAuth).values({
+        userId: userId,
+        passwordHash: hashedPassword,
+      });
       
       const user = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
       
@@ -115,16 +115,13 @@ async function startServer() {
         return res.status(400).json({ error: 'Пользователь не найден' });
       }
 
-      const authResult = await pool.query(
-        'SELECT password_hash FROM user_auth WHERE user_id = $1',
-        [email]
-      );
+      const authResult = await db.select().from(userAuth).where(eq(userAuth.userId, email)).limit(1);
       
-      if (authResult.rows.length === 0) {
+      if (authResult.length === 0) {
         return res.status(400).json({ error: 'Ошибка аутентификации' });
       }
 
-      const isValidPassword = await bcrypt.compare(password, authResult.rows[0].password_hash);
+      const isValidPassword = await bcrypt.compare(password, authResult[0].passwordHash);
       if (!isValidPassword) {
         return res.status(400).json({ error: 'Неверный пароль' });
       }
