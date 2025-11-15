@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { pool } from './db.js';
+import http from 'http';
 
 // Initialize database tables for crash game
 async function initializeDatabase() {

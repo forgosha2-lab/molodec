@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
@@ -33,11 +33,6 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
-
-if (isProduction) {
-  const distPath = path.join(__dirname, '..', 'dist');
-  app.use(express.static(distPath));
-}
 
 async function startServer() {
   try {
@@ -273,12 +268,22 @@ async function startServer() {
     res.json({ message: 'Welcome to the PyPLSE Game Hub API!' });
   });
 
-  if (isProduction) {
+  // Set up Vite dev server in middleware mode or serve static files
+  if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.use(express.static(distPath));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/ws')) {
+      if (req.path.startsWith('/ws') || req.path.startsWith('/api')) {
         return next();
       }
-      res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 

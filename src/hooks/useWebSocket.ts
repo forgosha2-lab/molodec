@@ -96,15 +96,9 @@ export function useWebSocket(customUrl?: string) {
       if (customUrl) {
         wsUrl = customUrl;
       } else {
-        // In production, use the same host as the page (Railway will handle routing)
-        // In development, use localhost
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          wsUrl = 'ws://localhost:3003/ws';
-        } else {
-          // For production (Railway), use the same protocol and host as the page
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          wsUrl = `${protocol}//${window.location.host}/ws`;
-        }
+        // Connect to WebSocket on the same host and port (server runs Vite in middleware mode)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${window.location.host}/ws`;
       }
 
       console.log('Connecting to WebSocket:', wsUrl);

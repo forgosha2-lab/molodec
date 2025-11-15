@@ -17,6 +17,11 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:3003',
         changeOrigin: true,
         secure: false
+      },
+      '/ws': {
+        target: 'http://localhost:3003',
+        ws: true,
+        changeOrigin: true
       }
     }
   },
