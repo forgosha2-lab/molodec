@@ -6,13 +6,16 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 
 ## Recent Changes (November 15, 2025)
 
-**Migration to Replit**: Successfully migrated from Vercel to Replit environment with the following changes:
-- Replaced better-sqlite3 with sql.js (pure JavaScript SQLite) to avoid native compilation issues
-- Created custom database adapter (server/db-adapter.js) with better-sqlite3 API compatibility
-- Configured ports for Replit (frontend: 5000, backend: 3003)
-- Fixed Vite file watching to exclude .cache directory
-- Implemented per-instance debounced save strategy for optimal performance
-- Added proper error handling with fail-fast behavior on database initialization failures
+**Migration to PostgreSQL (Neon Database)**: Successfully migrated from SQLite to PostgreSQL with Drizzle ORM:
+- Migrated from sql.js (SQLite) to Neon PostgreSQL serverless database
+- Implemented Drizzle ORM for type-safe database operations
+- Created comprehensive schema in shared/schema.ts mirroring original SQLite structure
+- Converted all UUID fields to TEXT to maintain compatibility with existing app logic (e.g., 'tg_123456789')
+- Replaced server.js with TypeScript server (server/index.ts) using Drizzle ORM
+- Updated all API routes to use Drizzle queries instead of SQLite statements
+- Database schema created directly with SQL (profiles, game_lobbies, achievements, etc.)
+- Removed old SQLite dependencies (sql.js, db-adapter.js)
+- Server successfully running with PostgreSQL backend on port 3003
 
 ## User Preferences
 
@@ -64,30 +67,31 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage
 
-**Primary Database**: SQLite with sql.js (pure JavaScript implementation)
-- Cross-platform compatibility without native compilation
-- Database file stored at configurable path (DB_PATH environment variable)
-- Default location: /tmp/pyplse_game_hub.db on Replit
-- Per-dbPath instance caching prevents concurrent access conflicts
-- Automatic database saves on process shutdown (SIGINT/SIGTERM handlers)
+**Primary Database**: PostgreSQL with Neon Database (serverless)
+- Managed PostgreSQL database via Replit integration
+- Drizzle ORM for type-safe database operations
+- WebSocket connection to Neon using @neondatabase/serverless
+- Environment variables managed automatically (DATABASE_URL, PGHOST, etc.)
 
-**Schema**:
+**Schema** (all tables use TEXT for IDs to support formats like 'tg_123456789'):
 - `user_auth` - User credentials and password hashes
 - `profiles` - User profiles with game statistics and diamond balance
-- `crash_history` - Historical crash game results
-- `player_balances` - Player currency balances
+- `friendships` - User friend relationships and statuses
 - `game_lobbies` - Multiplayer game lobby management
-- `game_sessions` - Active game state tracking
-- `achievements` - Achievement definitions and user unlocks
-- Game-specific tables created dynamically
+- `lobby_players` - Players in each lobby
+- `game_sessions` - Active game state tracking with JSONB game_state
+- `chat_messages` - In-game chat messages
+- `achievements` - Achievement definitions (6 default achievements)
+- `user_achievements` - User achievement unlocks
+- `game_emojis` - In-game emoji reactions
 
-**Database Adapter Design**:
-- Multiple database paths supported (main server + crash websocket can use separate or shared DBs)
-- Each instance maintains its own debounce timer to prevent cross-instance interference
-- Schema operations (CREATE TABLE) save immediately to disk
-- Data operations (INSERT/UPDATE) batch with 100ms debounce for performance
-- All operations throw errors on failure (no silent failures)
-- Process terminates if database cannot be initialized or persisted
+**ORM Design**:
+- Drizzle ORM provides type-safe query builder
+- Schema defined in shared/schema.ts with full TypeScript support
+- Relations defined for easy joins and nested queries
+- TEXT-based IDs throughout for compatibility with Telegram IDs
+- JSONB columns for flexible game state storage
+- Timestamp fields with timezone support
 
 ### Authentication & Authorization
 
@@ -131,11 +135,12 @@ Preferred communication style: Simple, everyday language.
 
 **Key Capabilities**:
 - WebSocket support fully functional on Replit
-- SQLite database persists across restarts on Replit
+- PostgreSQL database with automatic backups via Neon
+- Type-safe database queries with Drizzle ORM
 - All dependencies are pure JavaScript (no native compilation required)
-- Ready for production deployment on Replit or similar platforms
+- Ready for production deployment on Replit
 
-**Known Considerations**:
-- Database file at /tmp may not persist on some serverless platforms (Vercel)
-- For production at scale, consider migrating to PostgreSQL or MongoDB
-- Current implementation optimized for single-process environments
+**Database Scripts**:
+- `bun run db:push` - Sync schema to database (use --force if needed)
+- `bun run db:generate` - Generate migration files
+- `bun run db:studio` - Open Drizzle Studio for database management
