@@ -11,13 +11,15 @@ async function initializeDatabase() {
     await pool.query(`CREATE TABLE IF NOT EXISTS crash_history (
       id SERIAL PRIMARY KEY,
       crash_point REAL NOT NULL,
+      total_bets REAL NOT NULL DEFAULT 0,
+      total_payouts REAL NOT NULL DEFAULT 0,
       timestamp TIMESTAMP WITH TIME ZONE DEFAULT now()
     )`);
     
     // Create player balances table (if not exists)
     await pool.query(`CREATE TABLE IF NOT EXISTS player_balances (
       player_id TEXT PRIMARY KEY,
-      balance INTEGER NOT NULL DEFAULT 1000
+      balance NUMERIC(12, 2) NOT NULL DEFAULT 1000
     )`);
     
     console.log('Crash game database initialized successfully');
@@ -33,12 +35,19 @@ let gameState = {
   multiplier: 1.0,
   crashPoint: 0,
   startTime: 0,
-  bets: []
+  bets: [],
+  countdown: 12
+};
+
+// RTP tracking
+let rtpStats = {
+  totalBets: 0,
+  totalPayouts: 0,
+  currentRoundBets: 0
 };
 
 let gameInterval = null;
 let countdownInterval = null;
-let countdown = 12; // 12 second countdown
 
 // Store connections
 const connections = new Map();
@@ -51,18 +60,71 @@ async function loadCrashHistory() {
   try {
     const result = await pool.query('SELECT crash_point FROM crash_history ORDER BY timestamp DESC LIMIT 50');
     crashHistory = result.rows.map(row => row.crash_point);
+    
+    // Load RTP stats
+    const rtpResult = await pool.query('SELECT SUM(total_bets) as total_bets, SUM(total_payouts) as total_payouts FROM crash_history');
+    if (rtpResult.rows.length > 0 && rtpResult.rows[0].total_bets) {
+      rtpStats.totalBets = parseFloat(rtpResult.rows[0].total_bets) || 0;
+      rtpStats.totalPayouts = parseFloat(rtpResult.rows[0].total_payouts) || 0;
+    }
+    
     console.log(`Loaded ${crashHistory.length} crash history points`);
+    console.log(`RTP Stats - Total Bets: ${rtpStats.totalBets}, Total Payouts: ${rtpStats.totalPayouts}`);
   } catch (error) {
     console.error('Error loading crash history:', error);
   }
 }
 
 // Save crash point to database
-async function saveCrashPoint(point) {
+async function saveCrashPoint(point, totalBets, totalPayouts) {
   try {
-    await pool.query('INSERT INTO crash_history (crash_point) VALUES ($1)', [point]);
+    await pool.query('INSERT INTO crash_history (crash_point, total_bets, total_payouts) VALUES ($1, $2, $3)', 
+      [point, totalBets, totalPayouts]);
   } catch (error) {
     console.error('Error saving crash point:', error);
+  }
+}
+
+// Calculate crash point with RTP logic (90%)
+function calculateCrashPoint() {
+  const currentRTP = rtpStats.totalBets > 0 ? rtpStats.totalPayouts / rtpStats.totalBets : 0;
+  const targetRTP = 0.9;
+  
+  // Calculate how much we can afford to pay out
+  const totalBank = rtpStats.totalBets + rtpStats.currentRoundBets;
+  const targetPayoutTotal = totalBank * targetRTP;
+  const availableToPayout = targetPayoutTotal - rtpStats.totalPayouts;
+  
+  console.log(`RTP Calculation: Current RTP=${(currentRTP * 100).toFixed(2)}%, Available to payout=${availableToPayout.toFixed(2)}, Current round bets=${rtpStats.currentRoundBets}`);
+  
+  // If we're below 90% RTP, allow higher multipliers
+  // If we're above 90% RTP, force lower multipliers
+  if (currentRTP < targetRTP && availableToPayout > rtpStats.currentRoundBets * 0.5) {
+    // We can afford to pay out more - allow higher multipliers
+    const randomFactor = Math.random();
+    if (randomFactor < 0.3) {
+      // 30% chance of very high multiplier (2x - 10x)
+      return Math.random() * 8 + 2;
+    } else if (randomFactor < 0.6) {
+      // 30% chance of medium multiplier (1.5x - 2x)
+      return Math.random() * 0.5 + 1.5;
+    } else {
+      // 40% chance of low multiplier (1.1x - 1.5x)
+      return Math.random() * 0.4 + 1.1;
+    }
+  } else {
+    // Need to limit payouts - force lower multipliers
+    const randomFactor = Math.random();
+    if (randomFactor < 0.7) {
+      // 70% chance of instant crash or very low (1.00x - 1.15x)
+      return Math.random() * 0.15 + 1.00;
+    } else if (randomFactor < 0.9) {
+      // 20% chance of low multiplier (1.15x - 1.5x)
+      return Math.random() * 0.35 + 1.15;
+    } else {
+      // 10% chance of medium multiplier (1.5x - 2.5x)
+      return Math.random() * 1.0 + 1.5;
+    }
   }
 }
 
@@ -111,22 +173,21 @@ function startCountdown() {
   gameState.crashPoint = 0;
   gameState.startTime = 0;
   gameState.bets = [];
-  
-  countdown = 12;
+  gameState.countdown = 12;
+  rtpStats.currentRoundBets = 0;
   
   if (countdownInterval) clearInterval(countdownInterval);
   
   // Notify all clients about the countdown
-  broadcast({ type: 'countdown', countdown });
+  broadcast({ type: 'countdown', countdown: gameState.countdown, gameState });
   
   countdownInterval = setInterval(() => {
-    console.log(`Countdown: ${countdown}`);
-    broadcast({ type: 'countdown', countdown });
+    gameState.countdown--;
+    console.log(`Countdown: ${gameState.countdown}`);
+    broadcast({ type: 'countdown', countdown: gameState.countdown, gameState });
     
-    if (countdown <= 0) {
+    if (gameState.countdown <= 0) {
       startGame();
-    } else {
-      countdown--;
     }
   }, 1000);
 }
@@ -137,21 +198,26 @@ function startGame() {
   
   if (countdownInterval) clearInterval(countdownInterval);
   
+  // Calculate total bets for this round
+  rtpStats.currentRoundBets = gameState.bets.reduce((sum, bet) => sum + bet.amount, 0);
+  
   gameState.status = 'running';
   gameState.multiplier = 1.0;
-  gameState.crashPoint = Math.random() * 10 + 1.01; // Random crash point between 1.01 and 11.01
+  gameState.crashPoint = calculateCrashPoint(); // Use RTP-based calculation
   gameState.startTime = Date.now();
+  gameState.countdown = 0;
+  
+  console.log(`Game started with crash point: ${gameState.crashPoint.toFixed(2)}x, Total bets: ${rtpStats.currentRoundBets}`);
   
   // Save crash point to history
   crashHistory.unshift(gameState.crashPoint);
   if (crashHistory.length > 50) {
     crashHistory = crashHistory.slice(0, 50);
   }
-  saveCrashPoint(gameState.crashPoint);
   
   broadcast({ 
-    type: 'gameStart', 
-    crashPoint: gameState.crashPoint 
+    type: 'gameStart',
+    gameState
   });
   
   // Start game loop
@@ -161,45 +227,114 @@ function startGame() {
     const elapsed = Date.now() - gameState.startTime;
     const newMultiplier = Math.pow(Math.E, elapsed / 3000);
     
-    gameState.multiplier = newMultiplier;
+    gameState.multiplier = Math.min(newMultiplier, gameState.crashPoint);
     
     broadcast({ 
-      type: 'gameUpdate', 
-      multiplier: gameState.multiplier 
+      type: 'gameUpdate',
+      gameState
+    });
+    
+    // Auto cashout for players with auto cashout enabled
+    gameState.bets.forEach(bet => {
+      if (bet.autoCashout && !bet.cashoutMultiplier && gameState.multiplier >= bet.autoCashoutAt) {
+        performCashout(bet.playerId, true);
+      }
     });
     
     // Check if game should crash
     if (gameState.multiplier >= gameState.crashPoint) {
-      gameState.status = 'crashed';
-      gameState.multiplier = gameState.crashPoint;
-      
-      broadcast({ 
-        type: 'gameCrash', 
-        multiplier: gameState.multiplier 
-      });
-      
-      // Process bets - players who haven't cashed out lose
-      gameState.bets.forEach(bet => {
-        if (!bet.cashoutMultiplier) {
-          // Player lost - no change to balance
-          const conn = connections.get(bet.playerId);
-          if (conn && conn.readyState === 1) {
-            conn.send(JSON.stringify({
-              type: 'betLost',
-              betId: bet.id
-            }));
-          }
-        }
-      });
-      
-      if (gameInterval) clearInterval(gameInterval);
-      
-      // Start next round after 3 seconds
-      setTimeout(() => {
-        startCountdown();
-      }, 3000);
+      endGame();
     }
   }, 50);
+}
+
+// End the game (crash)
+async function endGame() {
+  gameState.status = 'crashed';
+  gameState.multiplier = gameState.crashPoint;
+  
+  if (gameInterval) clearInterval(gameInterval);
+  
+  console.log(`Game crashed at ${gameState.crashPoint.toFixed(2)}x`);
+  
+  // Calculate round statistics
+  let roundPayouts = 0;
+  
+  // Process bets - players who haven't cashed out lose
+  for (const bet of gameState.bets) {
+    if (bet.cashoutMultiplier) {
+      roundPayouts += bet.winAmount;
+    }
+    
+    const conn = connections.get(bet.playerId);
+    if (conn && conn.readyState === 1) {
+      const betResult = {
+        type: bet.cashoutMultiplier ? 'betWon' : 'betLost',
+        bet,
+        balance: await getPlayerBalance(bet.playerId)
+      };
+      conn.send(JSON.stringify(betResult));
+    }
+  }
+  
+  // Update global RTP stats
+  rtpStats.totalBets += rtpStats.currentRoundBets;
+  rtpStats.totalPayouts += roundPayouts;
+  
+  console.log(`Round ended - Bets: ${rtpStats.currentRoundBets}, Payouts: ${roundPayouts}, Current RTP: ${((rtpStats.totalPayouts / rtpStats.totalBets) * 100).toFixed(2)}%`);
+  
+  // Save to database
+  await saveCrashPoint(gameState.crashPoint, rtpStats.currentRoundBets, roundPayouts);
+  
+  broadcast({ 
+    type: 'gameCrash',
+    gameState,
+    crashHistory
+  });
+  
+  // Start next round after 3 seconds
+  setTimeout(() => {
+    startCountdown();
+  }, 3000);
+}
+
+// Perform cashout for a player
+async function performCashout(playerId, isAuto = false) {
+  if (gameState.status !== 'running') return false;
+  
+  const betIndex = gameState.bets.findIndex(bet => bet.playerId === playerId && !bet.cashoutMultiplier);
+  if (betIndex === -1) return false;
+  
+  const bet = gameState.bets[betIndex];
+  const winAmount = bet.amount * gameState.multiplier;
+  
+  // Update bet with cashout info
+  bet.cashoutMultiplier = gameState.multiplier;
+  bet.winAmount = winAmount;
+  bet.cashedOutAt = Date.now();
+  
+  // Add winnings to player balance
+  await updatePlayerBalance(playerId, winAmount);
+  
+  const newBalance = await getPlayerBalance(playerId);
+  
+  const conn = connections.get(playerId);
+  if (conn && conn.readyState === 1) {
+    conn.send(JSON.stringify({
+      type: 'betCashedOut',
+      bet,
+      balance: newBalance,
+      isAuto
+    }));
+  }
+  
+  // Broadcast to all players
+  broadcast({
+    type: 'betUpdate',
+    gameState
+  });
+  
+  return true;
 }
 
 // Handle WebSocket connection
@@ -277,6 +412,9 @@ async function handlePlaceBet(ws, playerId, playerName, data) {
   }
   
   const amount = Number(data.amount);
+  const autoCashout = data.autoCashout || false;
+  const autoCashoutAt = Number(data.autoCashoutAt) || 2.0;
+  
   if (isNaN(amount) || amount <= 0) {
     ws.send(JSON.stringify({ type: 'error', message: 'Invalid bet amount' }));
     return;
@@ -297,6 +435,8 @@ async function handlePlaceBet(ws, playerId, playerName, data) {
     playerId,
     playerName,
     amount,
+    autoCashout,
+    autoCashoutAt,
     timestamp: Date.now()
   };
   
@@ -315,49 +455,20 @@ async function handlePlaceBet(ws, playerId, playerName, data) {
   // Broadcast to all players
   broadcast({
     type: 'betUpdate',
-    bets: gameState.bets
+    gameState
   });
 }
 
 // Handle cashing out
 async function handleCashout(ws, playerId) {
-  if (gameState.status !== 'running') {
-    ws.send(JSON.stringify({ type: 'error', message: 'Cannot cashout - game is not running' }));
-    return;
+  const success = await performCashout(playerId, false);
+  
+  if (!success) {
+    ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: gameState.status !== 'running' ? 'Cannot cashout - game is not running' : 'No active bet found' 
+    }));
   }
-  
-  // Find player's bet
-  const betIndex = gameState.bets.findIndex(bet => bet.playerId === playerId && !bet.cashoutMultiplier);
-  if (betIndex === -1) {
-    ws.send(JSON.stringify({ type: 'error', message: 'No active bet found' }));
-    return;
-  }
-  
-  const bet = gameState.bets[betIndex];
-  const winAmount = bet.amount * gameState.multiplier;
-  
-  // Update bet with cashout info
-  bet.cashoutMultiplier = gameState.multiplier;
-  bet.winAmount = winAmount;
-  
-  // Add winnings to player balance
-  await updatePlayerBalance(playerId, winAmount);
-  
-  // Update player balance
-  const newBalance = await getPlayerBalance(playerId);
-  
-  // Notify player
-  ws.send(JSON.stringify({
-    type: 'betCashedOut',
-    bet,
-    balance: newBalance
-  }));
-  
-  // Broadcast to all players
-  broadcast({
-    type: 'betUpdate',
-    bets: gameState.bets
-  });
 }
 
 export async function setupCrashWebSocket(httpServer) {
@@ -371,14 +482,14 @@ export async function setupCrashWebSocket(httpServer) {
     // Load crash history
     await loadCrashHistory();
   
-  // Start initial countdown
-  startCountdown();
+    // Start initial countdown
+    startCountdown();
   
-  wss.on('connection', (ws) => {
-    handleConnection(ws);
-  });
+    wss.on('connection', (ws) => {
+      handleConnection(ws);
+    });
   
-  console.log('Crash game WebSocket server started on /ws');
+    console.log('Crash game WebSocket server started on /ws');
   } catch (error) {
     console.error('FATAL: Failed to setup crash websocket:', error);
     throw error;

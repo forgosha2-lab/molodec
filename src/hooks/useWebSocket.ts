@@ -5,6 +5,7 @@ interface CrashGameState {
   multiplier: number;
   crashPoint: number;
   startTime: number;
+  countdown: number;
   bets: Array<{
     id: string;
     playerId: string;
@@ -62,6 +63,7 @@ export function useWebSocket(customUrl?: string) {
     multiplier: 1.0,
     crashPoint: 0,
     startTime: 0,
+    countdown: 12,
     bets: [],
   });
   const [coinflipState, setCoinflipState] = useState<CoinflipGameState>({ status: 'idle' });
@@ -134,50 +136,68 @@ export function useWebSocket(customUrl?: string) {
               break;
 
             case 'gameStart':
-              setCrashState(prev => ({
-                ...prev,
-                status: 'running',
-                crashPoint: message.crashPoint,
-                multiplier: 1.0,
-                startTime: Date.now()
-              }));
+              if (message.gameState) {
+                setCrashState({
+                  ...message.gameState,
+                  status: 'running',
+                  multiplier: 1.0,
+                  startTime: Date.now()
+                });
+              }
               break;
 
             case 'gameUpdate':
-              setCrashState(prev => ({
-                ...prev,
-                status: 'running',
-                multiplier: message.multiplier
-              }));
+              if (message.gameState) {
+                setCrashState(prev => ({
+                  ...prev,
+                  status: 'running',
+                  multiplier: message.gameState.multiplier,
+                  bets: message.gameState.bets || prev.bets
+                }));
+              }
               break;
 
             case 'gameCrash':
-              setCrashState(prev => ({
-                ...prev,
-                status: 'crashed',
-                multiplier: message.multiplier
-              }));
+              if (message.gameState) {
+                setCrashState(prev => ({
+                  ...prev,
+                  status: 'crashed',
+                  multiplier: message.gameState.multiplier,
+                  crashPoint: message.gameState.crashPoint,
+                  bets: message.gameState.bets || prev.bets
+                }));
+              }
+              if (message.crashHistory) {
+                setCrashHistory(message.crashHistory);
+              }
               break;
 
             case 'countdown':
-              if (message.countdown === 12) {
-                // Reset game state when new countdown starts
+              if (message.gameState) {
+                setCrashState({
+                  ...message.gameState,
+                  status: 'waiting',
+                  countdown: message.countdown || 12
+                });
+              } else {
                 setCrashState(prev => ({
                   ...prev,
                   status: 'waiting',
                   multiplier: 1.0,
                   crashPoint: 0,
                   startTime: 0,
-                  bets: []
+                  countdown: message.countdown || 12
                 }));
               }
               break;
 
             case 'betUpdate':
-              setCrashState(prev => ({
-                ...prev,
-                bets: message.bets || []
-              }));
+              if (message.gameState) {
+                setCrashState(prev => ({
+                  ...prev,
+                  bets: message.gameState.bets || []
+                }));
+              }
               break;
 
             case 'crashHistory':
@@ -196,9 +216,33 @@ export function useWebSocket(customUrl?: string) {
               setLiveFeed(message.feed || []);
               break;
 
+            case 'betPlaced':
+              if (message.gameState) {
+                setCrashState(prev => ({
+                  ...prev,
+                  bets: message.gameState.bets || prev.bets
+                }));
+              }
+              if (message.balance !== undefined) {
+                setBalance(message.balance);
+              }
+              break;
+
+            case 'betCashedOut':
+              if (message.gameState) {
+                setCrashState(prev => ({
+                  ...prev,
+                  bets: message.gameState.bets || prev.bets
+                }));
+              }
+              if (message.balance !== undefined) {
+                setBalance(message.balance);
+              }
+              break;
+
             case 'crashBetPlaced':
             case 'crashCashedOut':
-              // Handle bet confirmations if needed
+              // Legacy handlers - kept for compatibility
               break;
 
             case 'error':

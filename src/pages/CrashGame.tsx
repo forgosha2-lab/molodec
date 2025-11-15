@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Play, Pause, Gem } from "lucide-react";
+import { ArrowLeft, Send, Gem } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import ufoImage from "@/assets/ufo.png";
@@ -50,10 +50,21 @@ const CrashGame = () => {
   ]);
   const [chatInput, setChatInput] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const ufoImageRef = useRef<HTMLImageElement | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [currentBet, setCurrentBet] = useState<PlayerBet | null>(null);
   const [gameHistory, setGameHistory] = useState<GameRound[]>([]);
+  const [backgroundOffset, setBackgroundOffset] = useState(0);
+
+  // Load UFO image
+  useEffect(() => {
+    const img = new Image();
+    img.src = ufoImage;
+    img.onload = () => {
+      ufoImageRef.current = img;
+    };
+  }, []);
 
   // Update current bet when crash state changes
   useEffect(() => {
@@ -73,16 +84,13 @@ const CrashGame = () => {
     }
   }, [crashState, playerId]);
 
-  // Handle auto cashout
+  // Animate background based on multiplier
   useEffect(() => {
-    if (crashState.status === 'running' && 
-        currentBet && 
-        autoCashoutEnabled && 
-        crashState.multiplier >= autoCashoutX && 
-        !currentBet.multiplier) {
-      cashout();
+    if (crashState.status === 'running') {
+      const speed = Math.min(crashState.multiplier * 2, 20);
+      setBackgroundOffset(prev => (prev + speed) % 1000);
     }
-  }, [crashState.multiplier, autoCashoutX, autoCashoutEnabled, currentBet, crashState.status]);
+  }, [crashState.multiplier, crashState.status]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -96,12 +104,12 @@ const CrashGame = () => {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Draw background elements
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    for (let i = 0; i < 50; i++) {
-      const x = (i * 73) % width;
+    // Draw animated background stars
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    for (let i = 0; i < 80; i++) {
+      const x = ((i * 73 + backgroundOffset) % width);
       const y = (i * 97) % height;
-      const size = Math.sin(i) * 1.5 + 1;
+      const size = Math.sin(i + backgroundOffset / 100) * 1.5 + 1.5;
       ctx.fillRect(x, y, size, size);
     }
 
@@ -135,18 +143,32 @@ const CrashGame = () => {
       }
       ctx.stroke();
 
-      if (points.length > 0) {
+      // Draw UFO at the end of the line
+      if (points.length > 0 && ufoImageRef.current) {
         const lastPoint = points[points.length - 1];
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(lastPoint.x, lastPoint.y, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // Use ufo image instead of rocket
-        ctx.fillText('🛸', lastPoint.x, lastPoint.y);
+        
+        // Add shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        
+        // Calculate wobble for high multipliers
+        const wobble = crashState.multiplier > 5 ? Math.sin(Date.now() / 100) * 3 : 0;
+        
+        // Draw UFO
+        const ufoSize = 40 + Math.min(crashState.multiplier * 2, 30);
+        ctx.drawImage(
+          ufoImageRef.current, 
+          lastPoint.x - ufoSize / 2 + wobble, 
+          lastPoint.y - ufoSize / 2, 
+          ufoSize, 
+          ufoSize
+        );
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
       }
 
       if (crashState.status === 'crashed') {
@@ -154,12 +176,19 @@ const CrashGame = () => {
         ctx.fillRect(0, 0, width, height);
       }
     }
-  }, [crashState]);
+  }, [crashState, backgroundOffset]);
 
   const placeBet = () => {
     if (crashState.status !== 'waiting' || betAmount <= 0 || betAmount > balance) return;
     
-    sendMessage({ type: 'placeBet', data: { amount: betAmount } });
+    sendMessage({ 
+      type: 'placeBet', 
+      data: { 
+        amount: betAmount,
+        autoCashout: autoCashoutEnabled,
+        autoCashoutAt: autoCashoutX
+      } 
+    });
   };
 
   const cashout = () => {
@@ -208,12 +237,11 @@ const CrashGame = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="clouds-bg absolute inset-0"></div>
         <div 
-          className="space-bg absolute inset-0 transition-opacity duration-500"
+          className="absolute inset-0 transition-all duration-300"
           style={{ 
-            opacity: crashState.multiplier >= 3 ? 1 : 0,
-            background: 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 50%, #2a2a5e 100%)'
+            background: 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 50%, #2a2a5e 100%)',
+            transform: `translateY(${-backgroundOffset / 5}px)`
           }}
         ></div>
         
@@ -227,7 +255,7 @@ const CrashGame = () => {
                 width: `${60 + i * 20}px`,
                 height: `${20 + i * 10}px`,
                 top: `${20 + i * 20}%`,
-                animation: `moveCloud${i} ${25 + i * 5}s linear infinite`,
+                animation: `moveCloud${i} ${25 - crashState.multiplier * 2}s linear infinite`,
                 left: '-100px'
               }}
             >
@@ -271,8 +299,20 @@ const CrashGame = () => {
           to { transform: translateX(calc(100vw + 120px)); }
         }
         
-        .clouds-bg {
-          background: linear-gradient(180deg, #1a1a2e 0%, #2d2d5e 50%, #3d3d7e 100%);
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.9; }
+        }
+        
+        @keyframes glow {
+          0%, 100% { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+          50% { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor; }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px) rotate(-2deg); }
+          75% { transform: translateX(5px) rotate(2deg); }
         }
       `}</style>
 
@@ -307,10 +347,31 @@ const CrashGame = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 relative z-10">
-        <div className="grid lg:grid-cols-[1fr,320px] gap-6">
+      <main className="container mx-auto px-4 py-4 relative z-10">
+        <div className="grid lg:grid-cols-[1fr,320px] gap-4">
           {/* Main Game Area */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            {/* Game History - Positioned higher and smaller */}
+            <Card className="bg-slate-800/50 border-slate-700/50 p-3">
+              <h3 className="text-sm font-semibold text-white mb-2">История</h3>
+              <div className="flex gap-1.5 overflow-x-auto">
+                {gameHistory.slice(0, 15).map((round) => (
+                  <div 
+                    key={round.id} 
+                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                      round.crashPoint < 2 
+                        ? 'bg-red-500/20 text-red-400' 
+                        : round.crashPoint < 5 
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : 'bg-green-500/20 text-green-400'
+                    }`}
+                  >
+                    {round.crashPoint.toFixed(2)}x
+                  </div>
+                ))}
+              </div>
+            </Card>
+
             {/* Game Canvas */}
             <Card className="bg-slate-800/50 border-slate-700/50 p-0 overflow-hidden">
               <div className="relative h-96 w-full">
@@ -323,29 +384,48 @@ const CrashGame = () => {
                 
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <div className={`text-6xl font-bold font-mono ${
-                      crashState.status === 'crashed' 
-                        ? 'text-red-500' 
-                        : crashState.status === 'running' 
-                          ? 'text-green-400' 
-                          : 'text-white'
-                    }`}>
-                      {crashState.multiplier.toFixed(2)}x
-                    </div>
-                    <div className="text-slate-300 mt-2">
-                      {crashState.status === 'waiting' && `Ожидание начала игры...`}
-                      {crashState.status === 'running' && 'Игра идет'}
-                      {crashState.status === 'crashed' && `Краш: ${crashState.crashPoint.toFixed(2)}x`}
-                    </div>
+                    {crashState.status === 'waiting' ? (
+                      <>
+                        <div className="text-6xl font-bold font-mono text-white mb-2">
+                          {crashState.countdown}
+                        </div>
+                        <div className="text-slate-300 text-lg">секунд до старта</div>
+                      </>
+                    ) : (
+                      <>
+                        <div 
+                          className={`text-7xl font-bold font-mono ${
+                            crashState.status === 'crashed' 
+                              ? 'text-red-500' 
+                              : crashState.status === 'running' 
+                                ? 'text-green-400' 
+                                : 'text-white'
+                          }`}
+                          style={{
+                            animation: crashState.status === 'running' 
+                              ? crashState.multiplier > 5 
+                                ? 'glow 1s ease-in-out infinite, shake 0.5s ease-in-out infinite' 
+                                : 'pulse 2s ease-in-out infinite, glow 2s ease-in-out infinite'
+                              : 'none'
+                          }}
+                        >
+                          {crashState.multiplier.toFixed(2)}x
+                        </div>
+                        <div className="text-slate-300 mt-2">
+                          {crashState.status === 'running' && 'Игра идет! 🚀'}
+                          {crashState.status === 'crashed' && `💥 Краш!`}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </Card>
 
             {/* Controls */}
-            <Card className="bg-slate-800/50 border-slate-700/50 p-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+            <Card className="bg-slate-800/50 border-slate-700/50 p-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Ставка
@@ -370,31 +450,19 @@ const CrashGame = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={autoCashoutEnabled}
+                        onChange={toggleAutoCashout}
+                        className="rounded"
+                      />
                       <label className="text-sm font-medium text-slate-300">
-                        Авто кэшаут
+                        Авто вывод при
                       </label>
-                      <Button
-                        size="sm"
-                        variant={autoCashoutEnabled ? "default" : "outline"}
-                        onClick={toggleAutoCashout}
-                        className="h-8"
-                      >
-                        {autoCashoutEnabled ? (
-                          <>
-                            <Pause className="w-3 h-3 mr-1" />
-                            ON
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3 h-3 mr-1" />
-                            OFF
-                          </>
-                        )}
-                      </Button>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input
                         type="number"
                         value={autoCashoutX}
@@ -404,28 +472,28 @@ const CrashGame = () => {
                         step="0.1"
                         disabled={!autoCashoutEnabled}
                       />
-                      <span className="flex items-center text-slate-300">x</span>
+                      <span className="text-slate-300">x</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Ваша ставка
                     </label>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
+                    <div className="bg-slate-700/50 rounded-lg p-3">
                       {currentBet ? (
                         <div className="space-y-2">
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-sm">
                             <span className="text-slate-300">Сумма:</span>
                             <span className="text-white font-medium">{currentBet.amount}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-sm">
                             <span className="text-slate-300">Множитель:</span>
                             <span className="text-white font-medium">{crashState.multiplier.toFixed(2)}x</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-sm">
                             <span className="text-slate-300">Выигрыш:</span>
                             <span className="text-green-400 font-medium">
                               {(currentBet.amount * crashState.multiplier).toFixed(2)}
@@ -440,7 +508,7 @@ const CrashGame = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-slate-400">
+                        <div className="text-center py-3 text-slate-400 text-sm">
                           Нет активной ставки
                         </div>
                       )}
@@ -450,40 +518,56 @@ const CrashGame = () => {
               </div>
             </Card>
 
-            {/* Game History */}
-            <Card className="bg-slate-800/50 border-slate-700/50 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">История игр</h3>
-              <div className="flex gap-2 overflow-x-auto">
-                {gameHistory.slice(0, 10).map((round) => (
-                  <div 
-                    key={round.id} 
-                    className={`px-3 py-2 rounded text-sm font-semibold whitespace-nowrap ${
-                      round.crashPoint < 2 
-                        ? 'bg-red-500/20 text-red-400' 
-                        : round.crashPoint < 5 
-                          ? 'bg-yellow-500/20 text-yellow-400'
-                          : 'bg-green-500/20 text-green-400'
-                    }`}
-                  >
-                    {round.crashPoint.toFixed(2)}x
+            {/* All Players Bets */}
+            <Card className="bg-slate-800/50 border-slate-700/50 p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Ставки игроков</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {crashState.bets && crashState.bets.length > 0 ? (
+                  crashState.bets.map((bet, index) => (
+                    <div 
+                      key={bet.id || index} 
+                      className="flex items-center justify-between bg-slate-700/30 rounded p-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-purple-400 font-medium">{bet.playerName}</span>
+                        <span className="text-slate-400">•</span>
+                        <span className="text-white">{bet.amount}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {bet.cashoutMultiplier ? (
+                          <>
+                            <span className="text-green-400 font-medium">{bet.cashoutMultiplier.toFixed(2)}x</span>
+                            <span className="text-green-500 text-xs">✓ Вывел</span>
+                          </>
+                        ) : crashState.status === 'crashed' ? (
+                          <span className="text-red-500 text-xs">✗ Проиграл</span>
+                        ) : (
+                          <span className="text-yellow-400 font-medium">{crashState.multiplier.toFixed(2)}x</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-slate-400 text-sm">
+                    Нет активных ставок
                   </div>
-                ))}
+                )}
               </div>
             </Card>
           </div>
 
           {/* Sidebar */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             {/* Chat */}
             <Card className="bg-slate-800/50 border-slate-700/50 flex-1 flex flex-col">
-              <div className="p-4 border-b border-slate-700/50">
-                <h3 className="font-semibold text-white">Чат</h3>
+              <div className="p-3 border-b border-slate-700/50">
+                <h3 className="font-semibold text-white text-sm">Чат</h3>
               </div>
               
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
+              <ScrollArea className="flex-1 p-3">
+                <div className="space-y-2">
                   {chatMessages.map((msg) => (
-                    <div key={msg.id} className="text-sm">
+                    <div key={msg.id} className="text-xs">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-purple-400">{msg.playerName}</span>
                         <span className="text-xs text-slate-500">
@@ -496,7 +580,7 @@ const CrashGame = () => {
                 </div>
               </ScrollArea>
               
-              <div className="p-4 border-t border-slate-700/50 flex gap-2">
+              <div className="p-3 border-t border-slate-700/50 flex gap-2">
                 <Input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
@@ -509,7 +593,7 @@ const CrashGame = () => {
                   onClick={sendChatMessage}
                   className="bg-purple-600 hover:bg-purple-700 text-white h-8 w-8 p-0"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3 w-3" />
                 </Button>
               </div>
             </Card>
