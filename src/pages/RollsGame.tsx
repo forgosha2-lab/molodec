@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy, Gem } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Bet {
@@ -201,9 +201,10 @@ const RollsGame = () => {
     const random = Math.random();
     let accumulated = 0;
     let winningBet = bets[0];
+    const currentPot = totalPot;
 
     for (const bet of bets) {
-      accumulated += bet.amount / totalPot;
+      accumulated += bet.amount / currentPot;
       if (random <= accumulated) {
         winningBet = bet;
         break;
@@ -228,8 +229,19 @@ const RollsGame = () => {
         requestAnimationFrame(animate);
       } else {
         setGameStatus('result');
-        setWinnerBet(winningBet);
-        setBalance(prev => prev + totalPot);
+        setWinnerBet({ ...winningBet, amount: currentPot });
+        if (winningBet.playerName === username) {
+          setBalance(prev => prev + currentPot);
+        }
+        
+        setBets([]);
+        setTotalPot(0);
+        setRotation(0);
+        
+        setTimeout(() => {
+          setGameStatus('waiting');
+          setWinnerBet(null);
+        }, 5000);
       }
     };
 
@@ -264,9 +276,9 @@ const RollsGame = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/50">
-              <div className="text-xs text-purple-300">Баланс</div>
-              <div className="text-lg font-bold text-white">💎 {balance.toFixed(0)}</div>
+            <div className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-2">
+              <Gem className="h-5 w-5 text-purple-300" />
+              <div className="text-lg font-bold text-white">{balance.toFixed(0)}</div>
             </div>
           </div>
         </div>
@@ -292,7 +304,7 @@ const RollsGame = () => {
                       <Trophy className="w-12 h-12 mx-auto mb-2 text-green-400" />
                       <div className="text-2xl font-bold text-white">ВЫИГРЫШ!</div>
                       <div className="text-lg text-green-400 font-bold">
-                        💎 {totalPot.toFixed(0)}
+                        💎 {winnerBet.amount.toFixed(0)}
                       </div>
                       <div className="text-sm text-purple-300 mt-2">
                         {winnerBet.playerName}

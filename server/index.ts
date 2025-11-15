@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { setupUnoWebSocket } from './websocket-uno.js';
 import { setupDurakRoutes } from './durak-server.js';
-import { setupCrashWebSocket } from './crash-websocket.js';
 import { logRequest } from './logger.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -315,7 +314,6 @@ async function startServer() {
   const httpServer = createServer(app);
   
   setupUnoWebSocket(httpServer);
-  await setupCrashWebSocket(httpServer);
 
   const host = process.env.HOST || '0.0.0.0';
   httpServer.listen(Number(PORT), host, () => {

@@ -114,7 +114,7 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
             </span>
           </div>
           <Button className="hidden md:flex bg-success hover:bg-success/90" onClick={onDepositClick}>
-            Пополнить в 1 клик
+            Пополнить/Вывести
           </Button>
           <Button 
             variant="ghost" 

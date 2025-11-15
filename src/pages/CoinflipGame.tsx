@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Gem } from "lucide-react";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
@@ -94,9 +94,9 @@ const CoinflipGame = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/50">
-              <div className="text-xs text-purple-300">Баланс</div>
-              <div className="text-lg font-bold text-white">💎 {balance.toFixed(0)}</div>
+            <div className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-2">
+              <Gem className="h-5 w-5 text-purple-300" />
+              <div className="text-lg font-bold text-white">{balance.toFixed(0)}</div>
             </div>
           </div>
         </div>

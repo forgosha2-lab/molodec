@@ -11,7 +11,6 @@ import Profile from "./pages/Profile";
 import Game from "./pages/Game";
 import DurakGame from "./pages/DurakGame";
 import UnoGame from "./pages/UnoGame";
-import CrashGame from "./pages/CrashGame";
 import CoinflipGame from "./pages/CoinflipGame";
 import RollsGame from "./pages/RollsGame";
 import NotFound from "./pages/NotFound";
@@ -31,7 +30,6 @@ const App = () => (
           <Route path="/game/:lobbyId" element={<Game />} />
           <Route path="/durak-game" element={<DurakGame />} />
           <Route path="/uno-game" element={<UnoGame />} />
-          <Route path="/crash-game" element={<CrashGame />} />
           <Route path="/coinflip-game" element={<CoinflipGame />} />
           <Route path="/rolls-game" element={<RollsGame />} />
           <Route path="/tournaments" element={<Tournaments />} />

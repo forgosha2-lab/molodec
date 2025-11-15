@@ -5,20 +5,15 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileMenu } from "@/components/MobileMenu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  User, 
   Gem, 
   Trophy, 
-  Medal, 
   TrendingUp, 
-  Calendar,
   Award,
   Gamepad2,
-  Settings,
   Edit,
-  Crown
+  Crown,
+  ArrowLeft
 } from "lucide-react";
 import { auth } from "@/integrations/database";
 import { telegram } from "@/lib/telegram";
@@ -192,6 +187,16 @@ const Profile = () => {
 
         <main className={`flex-1 pb-12 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}>
           <section className="container px-4 py-8">
+            {/* Back Button */}
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              className="mb-4 flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Назад
+            </Button>
+
             {/* Profile Header */}
             <Card className="p-6 mb-6">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -199,9 +204,6 @@ const Profile = () => {
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-4xl font-bold">
                     {username.charAt(0).toUpperCase()}
                   </div>
-                  <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary">
-                    Уровень {profile?.level || 1}
-                  </Badge>
                 </div>
                 
                 <div className="flex-1 text-center md:text-left">
@@ -272,125 +274,16 @@ const Profile = () => {
               </Card>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="achievements" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="achievements">Достижения</TabsTrigger>
-                <TabsTrigger value="history">История</TabsTrigger>
-                <TabsTrigger value="settings">Настройки</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="achievements" className="mt-6">
-                <Card className="p-6">
-                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <Award className="h-6 w-6 text-primary" />
-                    Достижения
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {achievements.map((achievement) => (
-                      <div
-                        key={achievement.id}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          achievement.unlocked_at
-                            ? "bg-primary/10 border-primary/50 hover:border-primary"
-                            : "bg-secondary/50 border-border opacity-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-3xl">{achievement.icon}</span>
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{achievement.name}</h3>
-                            {achievement.unlocked_at && (
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                Разблокировано
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {achievement.description}
-                        </p>
-                        {achievement.unlocked_at && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {formatDate(achievement.unlocked_at)}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="history" className="mt-6">
-                <Card className="p-6">
-                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <Calendar className="h-6 w-6 text-primary" />
-                    История игр
-                  </h2>
-                  <div className="space-y-4">
-                    {[
-                      { game: "Дурак", result: "Победа", date: "2025-11-13", prize: 50 },
-                      { game: "Дурак", result: "Поражение", date: "2025-11-12", prize: -10 },
-                      { game: "UNO", result: "Победа", date: "2025-11-11", prize: 30 },
-                      { game: "Дурак", result: "Победа", date: "2025-11-10", prize: 25 },
-                    ].map((game, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            game.result === "Победа" 
-                              ? "bg-green-500/20 text-green-400" 
-                              : "bg-red-500/20 text-red-400"
-                          }`}>
-                            {game.result === "Победа" ? "✓" : "✗"}
-                          </div>
-                          <div>
-                            <span className="font-semibold block">{game.game}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(game.date)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className={`font-bold ${
-                            game.prize > 0 ? "text-green-400" : "text-red-400"
-                          }`}>
-                            {game.prize > 0 ? "+" : ""}
-                            <Gem className="h-4 w-4 inline-block ml-1" />
-                            {Math.abs(game.prize)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="settings" className="mt-6">
-                <Card className="p-6">
-                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <Settings className="h-6 w-6 text-primary" />
-                    Настройки
-                  </h2>
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-lg bg-secondary">
-                      <h3 className="font-semibold mb-2">Уведомления</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Настройки уведомлений будут доступны в следующем обновлении
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-secondary">
-                      <h3 className="font-semibold mb-2">Приватность</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Настройки приватности будут доступны в следующем обновлении
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            {/* Достижения */}
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Award className="h-6 w-6 text-primary" />
+                Достижения
+              </h2>
+              <div className="text-center py-12">
+                <p className="text-xl text-muted-foreground">Скоро...</p>
+              </div>
+            </Card>
           </section>
         </main>
       </div>

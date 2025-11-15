@@ -10,7 +10,6 @@ import { Gem, Coins, ChevronLeft, ChevronRight, Dices, TrendingUp, Circle, Targe
 import durakImg from "@/assets/durak.png";
 import unoImg from "@/assets/uno.png";
 import bonusBanner from "@/assets/bonus-banner.png";
-import crashImg from "@/assets/crush.png";
 import coinflipImg from "@/assets/coinflipe.png";
 import rollsImg from "@/assets/rolls.png";
 import { auth } from "@/integrations/database";
@@ -166,12 +165,6 @@ const Index = () => {
             </div>
 
             <div className="flex flex-wrap justify-center gap-4">
-              <GameCard
-                title="Crash"
-                image={crashImg}
-                gradient="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                onClick={() => navigate("/crash-game")}
-              />
               <GameCard
                 title="Coinflip"
                 image={coinflipImg}
