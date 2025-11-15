@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crash Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Фоновые элементы */
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.5s ease;
+        }
+
+        .clouds-bg {
+            background: linear-gradient(180deg, #1a1a2e 0%, #2d2d5e 50%, #3d3d7e 100%);
+        }
+
+        .space-bg {
+            background: linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 50%, #2a2a5e 100%);
+            opacity: 0;
+        }
+
+        /* Облака */
+        .cloud {
+            position: absolute;
+            background: rgba(100, 100, 150, 0.3);
+            border-radius: 100px;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .cloud:before, .cloud:after {
+            content: '';
+            position: absolute;
+            background: rgba(100, 100, 150, 0.3);
+            border-radius: 100px;
+        }
+
+        .cloud1 {
+            width: 100px;
+            height: 40px;
+            top: 20%;
+            left: -100px;
+            animation: moveCloud1 25s linear infinite;
+        }
+
+        .cloud1:before {
+            width: 50px;
+            height: 40px;
+            top: -20px;
+            left: 10px;
+        }
+
+        .cloud1:after {
+            width: 60px;
+            height: 30px;
+            top: -10px;
+            right: 10px;
+        }
+
+        .cloud2 {
+            width: 120px;
+            height: 45px;
+            top: 40%;
+            left: -150px;
+            animation: moveCloud2 30s linear infinite;
+        }
+
+        .cloud2:before {
+            width: 60px;
+            height: 45px;
+            top: -25px;
+            left: 15px;
+        }
+
+        .cloud2:after {
+            width: 70px;
+            height: 35px;
+            top: -15px;
+            right: 15px;
+        }
+
+        .cloud3 {
+            width: 90px;
+            height: 35px;
+            top: 60%;
+            left: -120px;
+            animation: moveCloud3 28s linear infinite;
+        }
+
+        .cloud3:before {
+            width: 45px;
+            height: 35px;
+            top: -18px;
+            left: 12px;
+        }
+
+        .cloud3:after {
+            width: 55px;
+            height: 28px;
+            top: -12px;
+            right: 12px;
+        }
+
+        @keyframes moveCloud1 {
+            from { left: -100px; }
+            to { left: 110%; }
+        }
+
+        @keyframes moveCloud2 {
+            from { left: -150px; }
+            to { left: 110%; }
+        }
+
+        @keyframes moveCloud3 {
+            from { left: -120px; }
+            to { left: 110%; }
+        }
+
+        /* Планеты */
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .planet1 {
+            width: 80px;
+            height: 80px;
+            top: 15%;
+            left: 10%;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+            animation: rotatePlanet 30s linear infinite;
+        }
+
+        .planet2 {
+            width: 120px;
+            height: 120px;
+            top: 50%;
+            right: 15%;
+            background: radial-gradient(circle at 30% 30%, #845ef7, #5f3dc4);
+            box-shadow: 0 0 40px rgba(132, 94, 247, 0.5);
+            animation: rotatePlanet 40s linear infinite reverse;
+        }
+
+        .planet3 {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 20%;
+            background: radial-gradient(circle at 30% 30%, #51cf66, #2f9e44);
+            box-shadow: 0 0 25px rgba(81, 207, 102, 0.5);
+            animation: rotatePlanet 25s linear infinite;
+        }
+
+        @keyframes rotatePlanet {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Звезды */
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* График */
+        .graph-container {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 60%;
+            opacity: 0;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* НЛО */
+        .ufo {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            bottom: 100px;
+            left: 50px;
+            background-image: url('ufo.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: translateY(0);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        /* Множитель */
+        .multiplier {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 100px;
+            font-weight: bold;
+            color: #a855f7;
+            text-shadow: 0 0 30px rgba(168, 85, 247, 0.8),
+                         0 0 60px rgba(168, 85, 247, 0.5);
+            opacity: 0;
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                transform: translateX(-50%) scale(1);
+                text-shadow: 0 0 30px rgba(168, 85, 247, 0.8),
+                            0 0 60px rgba(168, 85, 247, 0.5);
+            }
+            50% { 
+                transform: translateX(-50%) scale(1.1);
+                text-shadow: 0 0 50px rgba(168, 85, 247, 1),
+                            0 0 100px rgba(168, 85, 247, 0.8);
+            }
+        }
+
+        /* Статус игры */
+        .status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #a855f7;
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
+            opacity: 1;
+            text-align: center;
+        }
+
+        .waiting-dots:after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Кнопка старта */
+        .start-button {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(168, 85, 247, 0.5);
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+
+        .start-button:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 15px 40px rgba(168, 85, 247, 0.7);
+        }
+
+        .start-button:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        .hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        .visible {
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Фон с облаками -->
+        <div class="background clouds-bg" id="cloudsBg">
+            <div class="cloud cloud1"></div>
+            <div class="cloud cloud2"></div>
+            <div class="cloud cloud3"></div>
+        </div>
+
+        <!-- Фон с планетами -->
+        <div class="background space-bg" id="spaceBg">
+            <div class="planet planet1"></div>
+            <div class="planet planet2"></div>
+            <div class="planet planet3"></div>
+        </div>
+
+        <!-- Звезды -->
+        <div id="stars"></div>
+
+        <!-- Статус -->
+        <div class="status" id="status">
+            <div>Ожидание игры<span class="waiting-dots"></span></div>
+        </div>
+
+        <!-- НЛО -->
+        <div class="ufo" id="ufo"></div>
+
+        <!-- Множитель -->
+        <div class="multiplier" id="multiplier">x1.00</div>
+
+        <!-- График -->
+        <div class="graph-container" id="graphContainer">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- Кнопка старта -->
+        <button class="start-button" id="startButton">НАЧАТЬ ИГРУ</button>
+    </div>
+
+    <script>
+        // Создаем звезды
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+
+        // Игровые переменные
+        let gameState = 'waiting'; // waiting, playing, crashed
+        let multiplier = 1.00;
+        let gameSpeed = 0.02;
+        let targetMultiplier = 3.73;
+        let animationId;
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        const ufo = document.getElementById('ufo');
+        const multiplierEl = document.getElementById('multiplier');
+        const status = document.getElementById('status');
+        const startButton = document.getElementById('startButton');
+        const graphContainer = document.getElementById('graphContainer');
+        const cloudsBg = document.getElementById('cloudsBg');
+        const spaceBg = document.getElementById('spaceBg');
+
+        // Массив точек графика
+        let graphPoints = [];
+
+        // Запуск игры
+        startButton.addEventListener('click', startGame);
+
+        function startGame() {
+            if (gameState !== 'waiting') return;
+
+            gameState = 'playing';
+            multiplier = 1.00;
+            graphPoints = [];
+            
+            // Скрываем кнопку и статус
+            startButton.classList.add('hidden');
+            status.classList.add('hidden');
+            
+            // Показываем элементы игры
+            setTimeout(() => {
+                ufo.classList.add('visible');
+                multiplierEl.classList.add('visible');
+                graphContainer.style.opacity = '1';
+                
+                // Запускаем игру
+                gameLoop();
+            }, 300);
+        }
+
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            // Увеличиваем множитель
+            multiplier += gameSpeed;
+            
+            // Ускоряем рост с увеличением множителя
+            gameSpeed = 0.02 + (multiplier - 1) * 0.01;
+
+            // Обновляем отображение
+            multiplierEl.textContent = 'x' + multiplier.toFixed(2);
+
+            // Добавляем точку на график
+            const x = (multiplier - 1) * 100;
+            const y = canvas.height - (multiplier - 1) * 50;
+            graphPoints.push({ x, y, multiplier });
+
+            // Рисуем график
+            drawGraph();
+
+            // Двигаем НЛО
+            const ufoY = Math.max(50, 100 - (multiplier - 1) * 20);
+            const ufoX = Math.min(50 + (multiplier - 1) * 50, window.innerWidth - 200);
+            ufo.style.bottom = ufoY + 'px';
+            ufo.style.left = ufoX + 'px';
+
+            // Меняем фон на 3x
+            if (multiplier >= 3.0 && cloudsBg.style.opacity !== '0') {
+                cloudsBg.style.opacity = '0';
+                spaceBg.style.opacity = '1';
+                
+                // Показываем планеты
+                document.querySelectorAll('.planet').forEach(planet => {
+                    planet.style.opacity = '1';
+                });
+            }
+
+            // Добавляем пульсацию множителя при достижении целых значений
+            const roundedMultiplier = Math.floor(multiplier * 10) / 10;
+            if (Math.abs(multiplier - Math.round(multiplier)) < 0.05) {
+                multiplierEl.classList.add('pulse');
+            } else {
+                multiplierEl.classList.remove('pulse');
+            }
+
+            // Проверяем достижение целевого множителя
+            if (multiplier >= targetMultiplier) {
+                endGame();
+                return;
+            }
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (graphPoints.length < 2) return;
+
+            // Настройка стиля линии
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#a855f7';
+
+            // Рисуем кривую
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+
+            for (let i = 0; i < graphPoints.length; i++) {
+                const point = graphPoints[i];
+                const x = (point.x / 300) * canvas.width;
+                const y = canvas.height - ((point.multiplier - 1) / 3) * canvas.height;
+                
+                if (i === 0) {
+                    ctx.lineTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.stroke();
+
+            // Заливка под графиком
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(168, 85, 247, 0.3)');
+            gradient.addColorStop(1, 'rgba(168, 85, 247, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+
+        function endGame() {
+            gameState = 'crashed';
+            cancelAnimationFrame(animationId);
+
+            // Интенсивная пульсация
+            multiplierEl.classList.add('pulse');
+
+            // Показываем финальное сообщение
+            setTimeout(() => {
+                status.innerHTML = '<div>КРАШ!<br><span style="font-size: 36px;">Множитель: x' + multiplier.toFixed(2) + '</span></div>';
+                status.classList.remove('hidden');
+
+                // Сброс через 3 секунды
+                setTimeout(resetGame, 3000);
+            }, 500);
+        }
+
+        function resetGame() {
+            gameState = 'waiting';
+            multiplier = 1.00;
+            gameSpeed = 0.02;
+            graphPoints = [];
+            
+            // Сброс фона
+            cloudsBg.style.opacity = '1';
+            spaceBg.style.opacity = '0';
+            document.querySelectorAll('.planet').forEach(planet => {
+                planet.style.opacity = '0';
+            });
+
+            // Сброс элементов
+            ufo.classList.remove('visible');
+            multiplierEl.classList.remove('visible', 'pulse');
+            graphContainer.style.opacity = '0';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Возврат НЛО
+            ufo.style.bottom = '100px';
+            ufo.style.left = '50px';
+
+            // Показываем кнопку
+            status.innerHTML = '<div>Ожидание игры<span class="waiting-dots"></span></div>';
+            startButton.classList.remove('hidden');
+        }
+
+        // Адаптация canvas при изменении размера окна
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        });
+    </script>
+</body>
+</html>
