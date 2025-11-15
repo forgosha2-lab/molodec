@@ -1,6 +1,7 @@
-modules = ["nodejs-18", "web", "bun-1.2"]
+modules = ["nodejs-18", "web", "bun", "postgresql-16"]
 [agent]
 expertMode = true
+integrations = ["javascript_database:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
