@@ -1,34 +1,20 @@
 import { WebSocketServer } from 'ws';
-import { initializeDb } from './db-adapter.js';
-import { homedir } from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { pool } from './db.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// SQLite database setup
-const dbPath = process.env.DB_PATH || path.join(homedir(), 'pyplse_game_hub.db');
-let db;
-
-// Initialize database
+// Initialize database tables for crash game
 async function initializeDatabase() {
   try {
     console.log('Initializing crash game database...');
-    db = await initializeDb(dbPath);
-    if (!db) {
-      throw new Error('Database initialization returned null');
-    }
     
     // Create crash game history table
-    db.exec(`CREATE TABLE IF NOT EXISTS crash_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+    await pool.query(`CREATE TABLE IF NOT EXISTS crash_history (
+      id SERIAL PRIMARY KEY,
       crash_point REAL NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      timestamp TIMESTAMP WITH TIME ZONE DEFAULT now()
     )`);
     
     // Create player balances table (if not exists)
-    db.exec(`CREATE TABLE IF NOT EXISTS player_balances (
+    await pool.query(`CREATE TABLE IF NOT EXISTS player_balances (
       player_id TEXT PRIMARY KEY,
       balance INTEGER NOT NULL DEFAULT 1000
     )`);
@@ -60,10 +46,10 @@ const connections = new Map();
 let crashHistory = [];
 
 // Load crash history from database
-function loadCrashHistory() {
+async function loadCrashHistory() {
   try {
-    const stmt = db.prepare('SELECT crash_point FROM crash_history ORDER BY timestamp DESC LIMIT 50');
-    crashHistory = stmt.all().map(row => row.crash_point);
+    const result = await pool.query('SELECT crash_point FROM crash_history ORDER BY timestamp DESC LIMIT 50');
+    crashHistory = result.rows.map(row => row.crash_point);
     console.log(`Loaded ${crashHistory.length} crash history points`);
   } catch (error) {
     console.error('Error loading crash history:', error);
@@ -71,26 +57,23 @@ function loadCrashHistory() {
 }
 
 // Save crash point to database
-function saveCrashPoint(point) {
+async function saveCrashPoint(point) {
   try {
-    const stmt = db.prepare('INSERT INTO crash_history (crash_point) VALUES (?)');
-    stmt.run(point);
+    await pool.query('INSERT INTO crash_history (crash_point) VALUES ($1)', [point]);
   } catch (error) {
     console.error('Error saving crash point:', error);
   }
 }
 
 // Get player balance
-function getPlayerBalance(playerId) {
+async function getPlayerBalance(playerId) {
   try {
-    const stmt = db.prepare('SELECT balance FROM player_balances WHERE player_id = ?');
-    const row = stmt.get(playerId);
-    if (row) {
-      return row.balance;
+    const result = await pool.query('SELECT balance FROM player_balances WHERE player_id = $1', [playerId]);
+    if (result.rows.length > 0) {
+      return result.rows[0].balance;
     } else {
       // Create new player with default balance
-      const insertStmt = db.prepare('INSERT INTO player_balances (player_id, balance) VALUES (?, 1000)');
-      insertStmt.run(playerId);
+      await pool.query('INSERT INTO player_balances (player_id, balance) VALUES ($1, 1000)', [playerId]);
       return 1000;
     }
   } catch (error) {
@@ -100,10 +83,9 @@ function getPlayerBalance(playerId) {
 }
 
 // Update player balance
-function updatePlayerBalance(playerId, amount) {
+async function updatePlayerBalance(playerId, amount) {
   try {
-    const stmt = db.prepare('UPDATE player_balances SET balance = balance + ? WHERE player_id = ?');
-    stmt.run(amount, playerId);
+    await pool.query('UPDATE player_balances SET balance = balance + $1 WHERE player_id = $2', [amount, playerId]);
   } catch (error) {
     console.error('Error updating player balance:', error);
   }
@@ -220,7 +202,7 @@ function startGame() {
 }
 
 // Handle WebSocket connection
-function handleConnection(ws) {
+async function handleConnection(ws) {
   // Generate player ID
   const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   const playerName = `Player${Math.floor(Math.random() * 9999)}`;
@@ -231,7 +213,7 @@ function handleConnection(ws) {
   console.log(`Player ${playerName} (${playerId}) connected`);
   
   // Send initial state
-  const balance = getPlayerBalance(playerId);
+  const balance = await getPlayerBalance(playerId);
   
   ws.send(JSON.stringify({
     type: 'connected',
@@ -266,18 +248,18 @@ function handleConnection(ws) {
 }
 
 // Handle WebSocket messages
-function handleMessage(ws, playerId, playerName, message) {
+async function handleMessage(ws, playerId, playerName, message) {
   switch (message.type) {
     case 'placeBet':
-      handlePlaceBet(ws, playerId, playerName, message.data);
+      await handlePlaceBet(ws, playerId, playerName, message.data);
       break;
       
     case 'cashout':
-      handleCashout(ws, playerId);
+      await handleCashout(ws, playerId);
       break;
       
     case 'getPlayerBalance':
-      const balance = getPlayerBalance(playerId);
+      const balance = await getPlayerBalance(playerId);
       ws.send(JSON.stringify({ type: 'balanceUpdate', balance }));
       break;
       
@@ -287,7 +269,7 @@ function handleMessage(ws, playerId, playerName, message) {
 }
 
 // Handle placing a bet
-function handlePlaceBet(ws, playerId, playerName, data) {
+async function handlePlaceBet(ws, playerId, playerName, data) {
   if (gameState.status !== 'waiting') {
     ws.send(JSON.stringify({ type: 'error', message: 'Cannot place bet - game is not waiting' }));
     return;
@@ -299,14 +281,14 @@ function handlePlaceBet(ws, playerId, playerName, data) {
     return;
   }
   
-  const balance = getPlayerBalance(playerId);
+  const balance = await getPlayerBalance(playerId);
   if (balance < amount) {
     ws.send(JSON.stringify({ type: 'error', message: 'Insufficient balance' }));
     return;
   }
   
   // Deduct bet amount from balance
-  updatePlayerBalance(playerId, -amount);
+  await updatePlayerBalance(playerId, -amount);
   
   // Create bet
   const bet = {
@@ -320,7 +302,7 @@ function handlePlaceBet(ws, playerId, playerName, data) {
   gameState.bets.push(bet);
   
   // Update player balance
-  const newBalance = getPlayerBalance(playerId);
+  const newBalance = await getPlayerBalance(playerId);
   
   // Notify player
   ws.send(JSON.stringify({
@@ -337,7 +319,7 @@ function handlePlaceBet(ws, playerId, playerName, data) {
 }
 
 // Handle cashing out
-function handleCashout(ws, playerId) {
+async function handleCashout(ws, playerId) {
   if (gameState.status !== 'running') {
     ws.send(JSON.stringify({ type: 'error', message: 'Cannot cashout - game is not running' }));
     return;
@@ -358,10 +340,10 @@ function handleCashout(ws, playerId) {
   bet.winAmount = winAmount;
   
   // Add winnings to player balance
-  updatePlayerBalance(playerId, winAmount);
+  await updatePlayerBalance(playerId, winAmount);
   
   // Update player balance
-  const newBalance = getPlayerBalance(playerId);
+  const newBalance = await getPlayerBalance(playerId);
   
   // Notify player
   ws.send(JSON.stringify({
@@ -386,7 +368,7 @@ export async function setupCrashWebSocket(httpServer) {
     const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
     
     // Load crash history
-    loadCrashHistory();
+    await loadCrashHistory();
   
   // Start initial countdown
   startCountdown();
