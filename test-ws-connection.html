@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+
+    <script>
+        const status = document.getElementById('status');
+        const messages = document.getElementById('messages');
+        
+        // Try to connect to WebSocket
+        const ws = new WebSocket('wss://absently-unified-collie.cloudpub.ru/ws');
+        
+        ws.onopen = function() {
+            status.innerHTML = '✅ Connected!';
+            messages.innerHTML += '<p>WebSocket connected successfully</p>';
+        };
+        
+        ws.onmessage = function(event) {
+            messages.innerHTML += `<p>📥 Message: ${event.data}</p>`;
+        };
+        
+        ws.onclose = function() {
+            status.innerHTML = '❌ Disconnected';
+            messages.innerHTML += '<p>WebSocket disconnected</p>';
+        };
+        
+        ws.onerror = function(error) {
+            status.innerHTML = '❌ Error';
+            messages.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+        };
+    </script>
+</body>
+</html>

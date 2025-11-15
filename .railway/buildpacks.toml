@@ -1,0 +1,5 @@
+[[buildpacks]]
+uri = "docker.io/heroku/nodejs-engine:0.9.0"
+
+[[buildpacks]]
+uri = "docker.io/heroku/web:0.9.0"
