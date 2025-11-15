@@ -12,6 +12,7 @@ import { setupUnoWebSocket } from './websocket-uno.js';
 import { setupDurakRoutes } from './durak-server.js';
 import { setupCrashWebSocket } from './crash-websocket.js';
 import { logRequest } from './logger.js';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
@@ -172,7 +173,10 @@ async function startServer() {
         return res.status(400).json({ error: 'Недостаточно бриллиантов' });
       }
 
+      const lobbyId = uuidv4();
+      
       const lobbyResult = await db.insert(gameLobbies).values({
+        id: lobbyId,
         hostId: userId,
         name,
         maxPlayers,
@@ -185,9 +189,8 @@ async function startServer() {
         currentPlayers: 1,
       }).returning();
 
-      const lobbyId = lobbyResult[0].id;
-
       await db.insert(lobbyPlayers).values({
+        id: uuidv4(),
         lobbyId,
         playerId: userId,
         position: 0,
@@ -239,6 +242,7 @@ async function startServer() {
       const nextPosition = positionResult.rows[0].max_pos !== null ? positionResult.rows[0].max_pos + 1 : 1;
 
       await db.insert(lobbyPlayers).values({
+        id: uuidv4(),
         lobbyId,
         playerId: userId,
         position: nextPosition,
