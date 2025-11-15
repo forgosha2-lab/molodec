@@ -181,3 +181,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Bun
+.bun
+bun.lockb

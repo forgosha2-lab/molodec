@@ -1,5 +1,5 @@
 import express from 'express';
-import Database from 'better-sqlite3';
+import { initializeDb } from './server/db-adapter.js';
 import bcrypt from 'bcryptjs';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -201,9 +201,15 @@ function initializeDatabase() {
 let statements;
 
 // Start server
-function startServer() {
+async function startServer() {
   try {
-    db = new Database(dbPath);
+    console.log('Initializing database...');
+    db = await initializeDb(dbPath);
+    if (!db) {
+      throw new Error('Database initialization returned null');
+    }
+    
+    console.log('Setting up database schema...');
     initializeDatabase();
 
     // Initialize prepared statements after database setup
@@ -218,7 +224,8 @@ function startServer() {
 
     console.log('Database initialized successfully');
   } catch (error) {
-    console.error('Error starting server:', error);
+    console.error('FATAL: Error starting server:', error);
+    console.error('Server cannot start without database. Exiting...');
     process.exit(1);
   }
 
@@ -502,7 +509,7 @@ function startServer() {
   setupUnoWebSocket(httpServer);
   
   // Setup Crash WebSocket
-  setupCrashWebSocket(httpServer);
+  await setupCrashWebSocket(httpServer);
 
   // Get host from environment or default to all interfaces
   const host = process.env.HOST || '0.0.0.0';
@@ -510,7 +517,7 @@ function startServer() {
     console.log(`Server running on ${host}:${PORT}`);
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
     console.log(`Database file: ${dbPath}`);
-    console.log(`HTTP API available at http://localhost:${PORT}/api`);
+    console.log(`HTTP API available at http://${host}:${PORT}/api`);
   });
 }
 

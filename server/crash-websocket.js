@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import Database from 'better-sqlite3';
+import { initializeDb } from './db-adapter.js';
 import { homedir } from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,9 +12,13 @@ const dbPath = process.env.DB_PATH || path.join(homedir(), 'pyplse_game_hub.db')
 let db;
 
 // Initialize database
-function initializeDatabase() {
+async function initializeDatabase() {
   try {
-    db = new Database(dbPath);
+    console.log('Initializing crash game database...');
+    db = await initializeDb(dbPath);
+    if (!db) {
+      throw new Error('Database initialization returned null');
+    }
     
     // Create crash game history table
     db.exec(`CREATE TABLE IF NOT EXISTS crash_history (
@@ -31,7 +35,8 @@ function initializeDatabase() {
     
     console.log('Crash game database initialized successfully');
   } catch (error) {
-    console.error('Error initializing crash game database:', error);
+    console.error('FATAL: Error initializing crash game database:', error);
+    throw error;
   }
 }
 
@@ -53,9 +58,6 @@ const connections = new Map();
 
 // History of crash points
 let crashHistory = [];
-
-// Initialize database
-initializeDatabase();
 
 // Load crash history from database
 function loadCrashHistory() {
@@ -375,12 +377,16 @@ function handleCashout(ws, playerId) {
   });
 }
 
-export function setupCrashWebSocket(httpServer) {
-  // Create WebSocket server on /ws path
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  // Load crash history
-  loadCrashHistory();
+export async function setupCrashWebSocket(httpServer) {
+  try {
+    // Initialize database first
+    await initializeDatabase();
+    
+    // Create WebSocket server on /ws path
+    const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+    
+    // Load crash history
+    loadCrashHistory();
   
   // Start initial countdown
   startCountdown();
@@ -390,4 +396,8 @@ export function setupCrashWebSocket(httpServer) {
   });
   
   console.log('Crash game WebSocket server started on /ws');
+  } catch (error) {
+    console.error('FATAL: Failed to setup crash websocket:', error);
+    throw error;
+  }
 }
