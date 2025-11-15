@@ -3,7 +3,7 @@ import { relations } from 'drizzle-orm';
 
 // Profiles table
 export const profiles = pgTable('profiles', {
-  id: uuid('id').primaryKey(),
+  id: text('id').primaryKey(),
   username: text('username').notNull().unique(),
   avatarUrl: text('avatar_url'),
   level: integer('level').default(1),
@@ -17,9 +17,9 @@ export const profiles = pgTable('profiles', {
 
 // Friendships table
 export const friendships = pgTable('friendships', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  friendId: uuid('friend_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  friendId: text('friend_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
   status: text('status').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -28,8 +28,8 @@ export const friendships = pgTable('friendships', {
 
 // Game lobbies table
 export const gameLobbies = pgTable('game_lobbies', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  hostId: uuid('host_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  hostId: text('host_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   gameType: text('game_type').notNull().default('durak'),
   maxPlayers: integer('max_players').notNull().default(4),
@@ -45,9 +45,9 @@ export const gameLobbies = pgTable('game_lobbies', {
 
 // Lobby players table
 export const lobbyPlayers = pgTable('lobby_players', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  lobbyId: uuid('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
-  playerId: uuid('player_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  lobbyId: text('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
+  playerId: text('player_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
   position: integer('position').notNull(),
   joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -56,29 +56,29 @@ export const lobbyPlayers = pgTable('lobby_players', {
 
 // Game sessions table
 export const gameSessions = pgTable('game_sessions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  lobbyId: uuid('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
-  currentTurnPlayerId: uuid('current_turn_player_id').references(() => profiles.id),
+  id: text('id').primaryKey(),
+  lobbyId: text('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
+  currentTurnPlayerId: text('current_turn_player_id').references(() => profiles.id),
   gameState: jsonb('game_state').notNull().default({}),
   trumpSuit: text('trump_suit'),
   status: text('status').notNull().default('active'),
-  winnerId: uuid('winner_id').references(() => profiles.id),
+  winnerId: text('winner_id').references(() => profiles.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
 });
 
 // Chat messages table
 export const chatMessages = pgTable('chat_messages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  lobbyId: uuid('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
-  senderId: uuid('sender_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  lobbyId: text('lobby_id').notNull().references(() => gameLobbies.id, { onDelete: 'cascade' }),
+  senderId: text('sender_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
   message: text('message').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
 // Achievements table
 export const achievements = pgTable('achievements', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   description: text('description').notNull(),
   icon: text('icon'),
@@ -89,9 +89,9 @@ export const achievements = pgTable('achievements', {
 
 // User achievements table
 export const userAchievements = pgTable('user_achievements', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  achievementId: uuid('achievement_id').notNull().references(() => achievements.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  achievementId: text('achievement_id').notNull().references(() => achievements.id, { onDelete: 'cascade' }),
   unlockedAt: timestamp('unlocked_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
   uniqueUserAchievement: unique().on(table.userId, table.achievementId),
@@ -99,9 +99,9 @@ export const userAchievements = pgTable('user_achievements', {
 
 // Game emojis table
 export const gameEmojis = pgTable('game_emojis', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: uuid('session_id').notNull().references(() => gameSessions.id, { onDelete: 'cascade' }),
-  playerId: uuid('player_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').notNull().references(() => gameSessions.id, { onDelete: 'cascade' }),
+  playerId: text('player_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
   emojiType: text('emoji_type').notNull(),
   positionX: real('position_x').notNull(),
   positionY: real('position_y').notNull(),
