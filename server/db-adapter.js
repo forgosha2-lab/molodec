@@ -3,7 +3,6 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 let SQL;
 const dbInstances = new Map();
-let saveTimeout = null;
 const SAVE_DEBOUNCE_MS = 100;
 
 export async function initializeDb(dbPath) {
@@ -13,7 +12,7 @@ export async function initializeDb(dbPath) {
     }
     
     if (dbInstances.has(dbPath)) {
-      return dbInstances.get(dbPath);
+      return dbInstances.get(dbPath).api;
     }
     
     let buffer;
@@ -22,22 +21,28 @@ export async function initializeDb(dbPath) {
         buffer = readFileSync(dbPath);
       } catch (error) {
         console.error(`Failed to read database file at ${dbPath}:`, error);
-        buffer = null;
+        throw new Error(`Cannot read database file: ${error.message}`);
       }
     }
     
     const dbInstance = new SQL.Database(buffer);
     
+    const instanceData = {
+      dbInstance,
+      saveTimeout: null,
+      api: null
+    };
+    
     const debouncedSave = () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
+      if (instanceData.saveTimeout) {
+        clearTimeout(instanceData.saveTimeout);
       }
-      saveTimeout = setTimeout(() => {
+      instanceData.saveTimeout = setTimeout(() => {
         saveDatabaseSync(dbPath, dbInstance);
       }, SAVE_DEBOUNCE_MS);
     };
     
-    const api = {
+    instanceData.api = {
       exec: (sql) => {
         try {
           dbInstance.exec(sql);
@@ -94,8 +99,8 @@ export async function initializeDb(dbPath) {
         };
       },
       close: () => {
-        if (saveTimeout) {
-          clearTimeout(saveTimeout);
+        if (instanceData.saveTimeout) {
+          clearTimeout(instanceData.saveTimeout);
         }
         saveDatabaseSync(dbPath, dbInstance);
         dbInstance.close();
@@ -103,8 +108,8 @@ export async function initializeDb(dbPath) {
       }
     };
     
-    dbInstances.set(dbPath, api);
-    return api;
+    dbInstances.set(dbPath, instanceData);
+    return instanceData.api;
   } catch (error) {
     console.error('Failed to initialize database:', error);
     throw new Error(`Database initialization failed: ${error.message}`);
@@ -117,21 +122,30 @@ function saveDatabaseSync(dbPath, dbInstance) {
     writeFileSync(dbPath, data);
   } catch (error) {
     console.error(`Failed to save database to ${dbPath}:`, error);
+    throw new Error(`Database save failed: ${error.message}`);
   }
 }
 
 process.on('SIGINT', () => {
   console.log('Shutting down, saving databases...');
-  for (const api of dbInstances.values()) {
-    api.close();
+  for (const instanceData of dbInstances.values()) {
+    try {
+      instanceData.api.close();
+    } catch (error) {
+      console.error('Error closing database:', error);
+    }
   }
   process.exit();
 });
 
 process.on('SIGTERM', () => {
   console.log('Shutting down, saving databases...');
-  for (const api of dbInstances.values()) {
-    api.close();
+  for (const instanceData of dbInstances.values()) {
+    try {
+      instanceData.api.close();
+    } catch (error) {
+      console.error('Error closing database:', error);
+    }
   }
   process.exit();
 });
