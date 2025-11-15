@@ -6,16 +6,17 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 
 ## Recent Changes (November 15, 2025)
 
-**Migration to PostgreSQL (Neon Database)**: Successfully migrated from SQLite to PostgreSQL with Drizzle ORM:
-- Migrated from sql.js (SQLite) to Neon PostgreSQL serverless database
-- Implemented Drizzle ORM for type-safe database operations
-- Created comprehensive schema in shared/schema.ts mirroring original SQLite structure
-- Converted all UUID fields to TEXT to maintain compatibility with existing app logic (e.g., 'tg_123456789')
-- Replaced server.js with TypeScript server (server/index.ts) using Drizzle ORM
-- Updated all API routes to use Drizzle queries instead of SQLite statements
-- Database schema created directly with SQL (profiles, game_lobbies, achievements, etc.)
-- Removed old SQLite dependencies (sql.js, db-adapter.js)
-- Server successfully running with PostgreSQL backend on port 3003
+**Migration to Neon PostgreSQL - COMPLETED**: Successfully migrated project from Supabase to Neon PostgreSQL with Drizzle ORM:
+- ✅ Migrated from Supabase to Neon PostgreSQL serverless database
+- ✅ Implemented Drizzle ORM for type-safe database operations
+- ✅ Created comprehensive schema in shared/schema.ts with TEXT-based IDs
+- ✅ Added UUID generation (uuid v4) for all database inserts using the uuid package
+- ✅ Fixed port configuration: Express server on 3003, Vite frontend on 5000
+- ✅ Updated all API routes to use Drizzle queries with proper UUID handling
+- ✅ Removed all Supabase artifacts (supabase/ directory, migrations, dependencies)
+- ✅ Generated Drizzle migration snapshot for schema drift detection
+- ✅ Verified application running successfully with WebSocket and HTTP endpoints
+- ✅ Database includes 10 tables: profiles, game_lobbies, lobby_players, achievements, user_achievements, game_sessions, chat_messages, game_emojis, friendships, user_auth
 
 ## User Preferences
 
@@ -53,12 +54,12 @@ Preferred communication style: Simple, everyday language.
 - Custom game logic modules (uno-game-logic.js, durak-server.js, crash-websocket.js)
 
 **Data Layer**:
-- Custom database abstraction layer (server/db-adapter.js) providing better-sqlite3 compatible API
-- Uses sql.js (pure JavaScript SQLite) for cross-platform compatibility
-- Per-instance debounce timers (100ms) for write batching without data loss
-- Immediate persistence for schema changes (exec), debounced for data operations (run)
-- In-memory storage classes for WebSocket game state (UnoStorage)
-- Fail-fast behavior: process exits on database initialization or persistence failures
+- Drizzle ORM with PostgreSQL (Neon) for type-safe database operations
+- UUID v4 generation for all primary keys using the uuid package
+- Connection pooling via pg.Pool for efficient database access
+- Hybrid approach: Drizzle for ORM queries, pg Pool for raw SQL when needed
+- In-memory storage classes for WebSocket game state (UnoStorage for UNO, crash game state)
+- Fail-fast behavior: process exits on database initialization failures
 
 **Authentication**: 
 - Telegram Web App SDK integration for user identity
