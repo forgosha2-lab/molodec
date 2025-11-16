@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem } from "lucide-react";
-import coinHeads from "@/assets/coin-heads.png";
-import coinTails from "@/assets/coin-tails.png";
+import coinHeads from "@/assets/coin-heads.svg";
+import coinTails from "@/assets/coin-tails.svg";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
@@ -165,9 +165,7 @@ const CoinflipGame = () => {
               <div className="text-center">
                 <div className="perspective-1000 w-64 h-64 mx-auto mb-8">
                   <div
-                    className={`coin-container w-full h-full relative ${
-                      gameStatus === 'flipping' ? 'coin-flip' : ''
-                    }`}
+                    className={`coin-container w-full h-full relative`}
                     style={{
                       transform: gameStatus === 'result' 
                         ? result === 'tails' 
@@ -175,7 +173,8 @@ const CoinflipGame = () => {
                           : 'rotateY(0deg)'
                         : selectedSide === 'tails'
                           ? 'rotateY(180deg)'
-                          : 'rotateY(0deg)'
+                          : 'rotateY(0deg)',
+                      animation: gameStatus === 'flipping' ? 'coinFlip 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none'
                     }}
                   >
                     <div className="coin-face coin-front">
@@ -404,6 +403,13 @@ const CoinflipGame = () => {
           height: 100%;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          background: transparent;
+        }
+        
+        .coin-face img {
+          filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+          mix-blend-mode: normal;
+          background: transparent;
         }
         
         .coin-front {
