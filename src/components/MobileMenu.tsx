@@ -38,9 +38,9 @@ export const MobileMenu = ({ activeTab, onTabChange, isAuthenticated }: MobileMe
           variant="ghost"
           size="icon"
           className={`flex flex-col items-center gap-1 h-auto py-2 ${
-            isActive("/lobbies") ? "text-primary bg-primary/10" : "text-muted-foreground"
+            isActive("/games") ? "text-primary bg-primary/10" : "text-muted-foreground"
           }`}
-          onClick={() => handleNavigation("/lobbies", "games")}
+          onClick={() => handleNavigation("/games", "games")}
         >
           <Gamepad2 className="h-5 w-5" />
           <span className="text-xs">Игры</span>

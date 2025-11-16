@@ -135,43 +135,55 @@ const Index = () => {
       <div className="flex">
         <main className="flex-1 pb-12">
           {/* Hero Banner Section */}
-          <section className="container px-4 py-8">
-            <div className="relative rounded-3xl overflow-hidden">
+          <section className="container px-4 py-4 md:py-8">
+            <div className="relative rounded-2xl md:rounded-3xl overflow-hidden">
               <img
                 src={bonusBanner}
                 alt="Bonus Banner"
-                className="w-full h-[400px] object-cover"
+                className="w-full h-[200px] sm:h-[300px] md:h-[400px] object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-between px-8">
+              <div className="absolute inset-0 flex items-center justify-between px-4 md:px-8">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-black/30 hover:bg-black/50 text-white"
+                  className="bg-black/30 hover:bg-black/50 text-white h-8 w-8 md:h-10 md:w-10"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-black/30 hover:bg-black/50 text-white"
+                  className="bg-black/30 hover:bg-black/50 text-white h-8 w-8 md:h-10 md:w-10"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
                 </Button>
               </div>
             </div>
           </section>
 
-          {/* Crash Games Section */}
-          <section className="container px-4 py-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Coins className="h-6 w-6 text-primary" />
-                Азартные игры
+          {/* Games Section */}
+          <section className="container px-4 py-4 md:py-8">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <Coins className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                Игры
               </h2>
             </div>
 
             <div className="overflow-x-auto pb-4 -mx-4 px-4">
-              <div className="flex gap-4 min-w-max md:min-w-0 md:justify-center">
+              <div className="flex gap-3 md:gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 md:min-w-0">
+                <GameCard
+                  title="UNO"
+                  image={unoImg}
+                  gradient="bg-gradient-to-br from-red-600 via-blue-600 to-green-600"
+                  onClick={handleUnoClick}
+                />
+                <GameCard
+                  title="Дурак"
+                  image={durakImg}
+                  gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
+                  onClick={handleDurakClick}
+                />
                 <GameCard
                   title="Coinflip"
                   image={coinflipImg}
@@ -189,14 +201,14 @@ const Index = () => {
           </section>
 
           {/* Leaderboard Section */}
-          <section className="container px-4 py-8">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Gem className="h-6 w-6 text-primary" />
+          <section className="container px-4 py-4 md:py-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+              <Gem className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               Рейтинг богатейших игроков
             </h2>
 
-            <Card className="p-6">
-              <div className="space-y-4">
+            <Card className="p-4 md:p-6">
+              <div className="space-y-2 md:space-y-4">
                 {[
                   { rank: 1, name: "Player***", balance: "💎 125,890" },
                   { rank: 2, name: "Gamer***", balance: "💎 98,450" },
@@ -206,15 +218,15 @@ const Index = () => {
                 ].map((player) => (
                   <div
                     key={player.rank}
-                    className="flex items-center justify-between p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                    className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                    <div className="flex items-center justify-between gap-2 md:gap-4">
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-sm md:text-base">
                         {player.rank}
                       </div>
-                      <span className="font-semibold">{player.name}</span>
+                      <span className="font-semibold text-sm md:text-base">{player.name}</span>
                     </div>
-                    <span className="font-bold text-lg">{player.balance}</span>
+                    <span className="font-bold text-sm md:text-lg">{player.balance}</span>
                   </div>
                 ))}
               </div>

@@ -49,21 +49,12 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onMenuClick}
-            className="md:mr-2"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
+      <div className="container flex h-14 md:h-16 items-center justify-between px-3 md:px-4">
+        <div className="flex items-center gap-3 md:gap-6">
           <img 
             src={logo} 
             alt="PPYLSE" 
-            className="h-8 w-auto cursor-pointer" 
+            className="h-7 md:h-8 w-auto cursor-pointer" 
             onClick={() => handleNavigation("/", "home")}
           />
 
@@ -88,14 +79,18 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border">
-            <span className="text-sm text-muted-foreground">Баланс</span>
-            <span className="font-bold flex items-center gap-1">
-              {syncedBalance.toFixed(2)} <Gem className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-lg bg-card border border-border">
+            <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">Баланс</span>
+            <span className="font-bold flex items-center gap-1 text-sm md:text-base">
+              {syncedBalance.toFixed(2)} <Gem className="h-3 w-3 md:h-4 md:w-4 text-primary" />
             </span>
           </div>
-          <Button className="hidden md:flex bg-success hover:bg-success/90" onClick={onDepositClick}>
-            Пополнить/Вывести
+          <Button 
+            className="bg-success hover:bg-success/90 text-xs md:text-sm px-2 md:px-4 h-8 md:h-10" 
+            onClick={onDepositClick}
+          >
+            <span className="hidden sm:inline">Пополнить/Вывести</span>
+            <span className="sm:hidden">+/-</span>
           </Button>
           <Button 
             variant="ghost" 
