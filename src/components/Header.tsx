@@ -3,7 +3,7 @@ import { Home, Gamepad2, Trophy, Gift, Menu, Gem, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
-import { subscribeToBalance } from "@/lib/balanceSync";
+import { getBalance, subscribeToBalance } from "@/lib/balanceSync";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -16,18 +16,20 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("home");
-  const [syncedBalance, setSyncedBalance] = useState(balance);
+  const [syncedBalance, setSyncedBalance] = useState(() => getBalance());
 
   // Subscribe to centralized balance changes
   useEffect(() => {
-    setSyncedBalance(balance);
+    // Initialize from BalanceSync on mount
+    const currentBalance = getBalance();
+    setSyncedBalance(currentBalance);
     
     const unsubscribe = subscribeToBalance((newBalance) => {
       setSyncedBalance(newBalance);
     });
     
     return unsubscribe;
-  }, [balance]);
+  }, []);
 
   const handleNavigation = (path: string, tab: string) => {
     setActiveTab(tab);
