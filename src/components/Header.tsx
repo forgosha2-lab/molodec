@@ -78,30 +78,12 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
               Главная
             </Button>
             <Button
-              variant={getActiveTab() === "games" ? "secondary" : "ghost"}
-              className="gap-2"
-              onClick={() => handleNavigation("/games", "games")}
-            >
-              <Gamepad2 className="h-4 w-4" />
-              Игры
-            </Button>
-            <Button
               variant={getActiveTab() === "tournaments" ? "secondary" : "ghost"}
               className="gap-2"
               onClick={() => handleNavigation("/tournaments", "tournaments")}
             >
               <Trophy className="h-4 w-4" />
               Соревнования
-            </Button>
-            <Button
-              variant="ghost"
-              className="gap-2 relative"
-            >
-              <Gift className="h-4 w-4" />
-              Free Money
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold bg-primary rounded-full">
-                Скоро
-              </span>
             </Button>
           </nav>
         </div>

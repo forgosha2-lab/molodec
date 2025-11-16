@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem } from "lucide-react";
 import coinHeads from "@/assets/coin-heads.png";
 import coinTails from "@/assets/coin-tails.png";
+import { getBalance, setBalance as saveBalance, subscribeToBalance } from "@/lib/balanceSync";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
@@ -28,13 +29,15 @@ const CoinflipGame = () => {
   const [totalWagered, setTotalWagered] = useState(0);
   const [totalWon, setTotalWon] = useState(0);
 
-  // Загрузить баланс из localStorage
+  // Загрузить баланс и подписаться на изменения
   useEffect(() => {
+    const initialBalance = getBalance();
+    setBalance(initialBalance);
+    
     const user = localStorage.getItem('user');
     if (user) {
       try {
         const userData = JSON.parse(user);
-        setBalance(userData.diamonds_balance || 1000);
         setUsername(userData.username || 'Player');
       } catch (e) {
         console.error('Failed to parse user data:', e);
@@ -53,35 +56,13 @@ const CoinflipGame = () => {
       }
     }
     
-    // Слушатель для синхронизации баланса между вкладками
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user' && e.newValue) {
-        try {
-          const userData = JSON.parse(e.newValue);
-          setBalance(userData.diamonds_balance || 1000);
-        } catch (err) {
-          console.error('Failed to sync balance:', err);
-        }
-      }
-    };
+    // Подписаться на изменения баланса
+    const unsubscribe = subscribeToBalance((newBalance) => {
+      setBalance(newBalance);
+    });
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return unsubscribe;
   }, []);
-  
-  // Сохранить баланс в localStorage и синхронизировать
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        userData.diamonds_balance = balance;
-        localStorage.setItem('user', JSON.stringify(userData));
-      } catch (e) {
-        console.error('Failed to save balance:', e);
-      }
-    }
-  }, [balance]);
   
   // Сохранить RTP статистику
   useEffect(() => {
@@ -97,7 +78,9 @@ const CoinflipGame = () => {
       return;
     }
 
-    setBalance(balance - betAmount);
+    const newBalance = balance - betAmount;
+    setBalance(newBalance);
+    saveBalance(newBalance);
     setGameStatus('flipping');
     
     // Обновить статистику ставок
@@ -138,7 +121,9 @@ const CoinflipGame = () => {
 
       if (won) {
         const winAmount = betAmount * 1.95;
-        setBalance(prev => prev + winAmount);
+        const newBalance = balance + winAmount;
+        setBalance(newBalance);
+        saveBalance(newBalance);
         setTotalWon(prev => prev + winAmount);
       }
 
@@ -186,8 +171,7 @@ const CoinflipGame = () => {
 
       {/* Main Game Area */}
       <main className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-[1fr,300px] gap-6">
-          {/* Game Area */}
+        <div className="max-w-4xl mx-auto">
           <div className="flex flex-col gap-4">
             {/* Coin Display */}
             <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-purple-500/30 p-8 min-h-[400px] flex items-center justify-center">
@@ -390,28 +374,6 @@ const CoinflipGame = () => {
             </Card>
           </div>
 
-          {/* Info Panel */}
-          <Card className="bg-slate-800/50 border-purple-500/30 p-6 h-fit">
-            <h3 className="font-semibold text-purple-300 mb-4">Информация</h3>
-            <div className="space-y-4 text-sm">
-              <div className="p-3 bg-slate-700/50 border border-purple-500/30 rounded-lg">
-                <div className="text-purple-300 text-xs">Текущий баланс</div>
-                <div className="font-bold text-white text-lg">💎 {balance.toFixed(0)}</div>
-              </div>
-              <div className="p-3 bg-slate-700/50 border border-purple-500/30 rounded-lg">
-                <div className="text-purple-300 text-xs">Выигрыш</div>
-                <div className="font-bold text-white text-lg">1.95x</div>
-              </div>
-              <div className="p-3 bg-slate-700/50 border border-purple-500/30 rounded-lg">
-                <div className="text-purple-300 text-xs">Вероятност��</div>
-                <div className="font-bold text-white text-lg">50%</div>
-              </div>
-              <div className="p-3 bg-slate-700/50 border border-purple-500/30 rounded-lg">
-                <div className="text-purple-300 text-xs">RTP</div>
-                <div className="font-bold text-white text-lg">95%</div>
-              </div>
-            </div>
-          </Card>
         </div>
       </main>
 

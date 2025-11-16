@@ -58,18 +58,6 @@ export const MobileMenu = ({ activeTab, onTabChange, isAuthenticated }: MobileMe
           <span className="text-xs">Соревнования</span>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`flex flex-col items-center gap-1 h-auto py-2 ${
-            activeTab === "bonus" ? "text-primary bg-primary/10" : "text-muted-foreground"
-          }`}
-          onClick={() => onTabChange("bonus")}
-        >
-          <Gift className="h-5 w-5" />
-          <span className="text-xs">Бонусы</span>
-        </Button>
-
         {isAuthenticated && (
           <Button
             variant="ghost"

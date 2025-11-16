@@ -15,6 +15,7 @@ import rollsImg from "@/assets/rolls.png";
 import { auth } from "@/integrations/database";
 import { telegram } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
+import { getBalance, subscribeToBalance } from "@/lib/balanceSync";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -27,40 +28,16 @@ const Index = () => {
   useEffect(() => {
     initTelegramAuth();
     
-    // Обновить баланс при возвращении на страницу
-    const syncBalance = () => {
-      const user = localStorage.getItem('user');
-      if (user) {
-        try {
-          const userData = JSON.parse(user);
-          setBalance(userData.diamonds_balance || 100);
-        } catch (e) {
-          console.error('Failed to sync balance:', e);
-        }
-      }
-    };
+    // Load initial balance
+    const initialBalance = getBalance();
+    setBalance(initialBalance);
     
-    // Синхронизация при фокусе на странице
-    window.addEventListener('focus', syncBalance);
+    // Subscribe to balance changes
+    const unsubscribe = subscribeToBalance((newBalance) => {
+      setBalance(newBalance);
+    });
     
-    // Слушатель для синхронизации между вкладками
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user' && e.newValue) {
-        try {
-          const userData = JSON.parse(e.newValue);
-          setBalance(userData.diamonds_balance || 100);
-        } catch (err) {
-          console.error('Failed to sync balance from storage:', err);
-        }
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('focus', syncBalance);
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return unsubscribe;
   }, []);
 
   const initTelegramAuth = async () => {
@@ -149,20 +126,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Header
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onMenuClick={() => {}}
         balance={balance}
         username={username}
         onDepositClick={() => toast({ title: "Пополнение", description: "Функция в разработке" })}
       />
 
       <div className="flex">
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
-          onDurakClick={handleDurakClick}
-        />
-
-        <main className={`flex-1 pb-12 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}>
+        <main className="flex-1 pb-12">
           {/* Hero Banner Section */}
           <section className="container px-4 py-8">
             <div className="relative rounded-3xl overflow-hidden">
@@ -199,47 +170,21 @@ const Index = () => {
               </h2>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4">
-              <GameCard
-                title="Coinflip"
-                image={coinflipImg}
-                gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
-                onClick={() => navigate("/coinflip-game")}
-              />
-              <GameCard
-                title="Rolls"
-                image={rollsImg}
-                gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
-                onClick={() => navigate("/rolls-game")}
-              />
-            </div>
-          </section>
-
-          {/* Classic Games Section */}
-          <section className="container px-4 py-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Gem className="h-6 w-6 text-primary" />
-                Классические игры
-              </h2>
-              <Button variant="link" className="text-primary">
-                Все игры →
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-4">
-              <GameCard
-                title="Дурак"
-                image={durakImg}
-                gradient="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700"
-                onClick={handleDurakClick}
-              />
-              <GameCard
-                title="UNO"
-                image={unoImg}
-                gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600"
-                onClick={handleUnoClick}
-              />
+            <div className="overflow-x-auto pb-4 -mx-4 px-4">
+              <div className="flex gap-4 min-w-max md:min-w-0 md:justify-center">
+                <GameCard
+                  title="Coinflip"
+                  image={coinflipImg}
+                  gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
+                  onClick={() => navigate("/coinflip-game")}
+                />
+                <GameCard
+                  title="Rolls"
+                  image={rollsImg}
+                  gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
+                  onClick={() => navigate("/rolls-game")}
+                />
+              </div>
             </div>
           </section>
 
