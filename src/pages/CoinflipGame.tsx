@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem } from "lucide-react";
+import coinHeads from "@/assets/coin-heads.png";
+import coinTails from "@/assets/coin-tails.png";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
@@ -21,6 +23,10 @@ const CoinflipGame = () => {
     { result: 'tails', timestamp: Date.now() - 240000 },
     { result: 'heads', timestamp: Date.now() - 300000 },
   ]);
+  
+  // RTP tracking
+  const [totalWagered, setTotalWagered] = useState(0);
+  const [totalWon, setTotalWon] = useState(0);
 
   // Загрузить баланс из localStorage
   useEffect(() => {
@@ -34,7 +40,27 @@ const CoinflipGame = () => {
         console.error('Failed to parse user data:', e);
       }
     }
+    
+    // Загрузить RTP статистику
+    const rtpData = localStorage.getItem('coinflip_rtp');
+    if (rtpData) {
+      try {
+        const { wagered, won } = JSON.parse(rtpData);
+        setTotalWagered(wagered || 0);
+        setTotalWon(won || 0);
+      } catch (e) {
+        console.error('Failed to parse RTP data:', e);
+      }
+    }
   }, []);
+  
+  // Сохранить RTP статистику
+  useEffect(() => {
+    localStorage.setItem('coinflip_rtp', JSON.stringify({
+      wagered: totalWagered,
+      won: totalWon
+    }));
+  }, [totalWagered, totalWon]);
 
   const flip = () => {
     if (betAmount > balance) {
@@ -44,12 +70,38 @@ const CoinflipGame = () => {
 
     setBalance(balance - betAmount);
     setGameStatus('flipping');
+    
+    // Обновить статистику ставок
+    setTotalWagered(prev => prev + betAmount);
 
     // Анимация вращения
     setTimeout(() => {
+      // Расчет RTP: если игрок выиграл больше 95% от проигранного, снизить шансы
+      const netLoss = totalWagered - totalWon; // Сколько игрок проиграл
+      const maxAllowedWin = totalWagered * 0.95; // Максимум 95% от всех ставок
+      const currentRTP = totalWagered > 0 ? (totalWon / totalWagered) : 0;
+      
+      let winChance = 0.5; // Базовый шанс 50%
+      
+      // Если RTP игрока больше 95%, уменьшаем шансы на выигрыш
+      if (currentRTP > 0.95) {
+        winChance = 0.3; // Снижаем до 30%
+      } else if (currentRTP > 0.90) {
+        winChance = 0.4; // Снижаем до 40%
+      }
+      
       const random = Math.random();
-      const flipResult = random < 0.5 ? 'heads' : 'tails';
-      const won = flipResult === selectedSide;
+      let flipResult: 'heads' | 'tails';
+      let won: boolean;
+      
+      // Определяем результат с учетом RTP
+      if (random < winChance) {
+        flipResult = selectedSide; // Игрок выигрывает
+        won = true;
+      } else {
+        flipResult = selectedSide === 'heads' ? 'tails' : 'heads'; // Игрок проигрывает
+        won = false;
+      }
 
       setResult(flipResult);
       setIsWin(won);
@@ -58,6 +110,7 @@ const CoinflipGame = () => {
       if (won) {
         const winAmount = betAmount * 1.95;
         setBalance(prev => prev + winAmount);
+        setTotalWon(prev => prev + winAmount);
       }
 
       // Добавить в историю
@@ -110,16 +163,35 @@ const CoinflipGame = () => {
             {/* Coin Display */}
             <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-purple-500/30 p-8 min-h-[400px] flex items-center justify-center">
               <div className="text-center">
-                <div
-                  className={`w-64 h-64 mx-auto mb-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl ${
-                    gameStatus === 'flipping' ? 'animate-spin' : ''
-                  }`}
-                  style={{
-                    animation: gameStatus === 'flipping' ? 'spin 1.5s ease-out' : 'none',
-                  }}
-                >
-                  <div className="text-8xl font-bold">
-                    {gameStatus === 'result' ? (result === 'heads' ? '🦅' : '🪙') : selectedSide === 'heads' ? '🦅' : '🪙'}
+                <div className="perspective-1000 w-64 h-64 mx-auto mb-8">
+                  <div
+                    className={`coin-container w-full h-full relative ${
+                      gameStatus === 'flipping' ? 'coin-flip' : ''
+                    }`}
+                    style={{
+                      transform: gameStatus === 'result' 
+                        ? result === 'tails' 
+                          ? 'rotateY(180deg)' 
+                          : 'rotateY(0deg)'
+                        : selectedSide === 'tails'
+                          ? 'rotateY(180deg)'
+                          : 'rotateY(0deg)'
+                    }}
+                  >
+                    <div className="coin-face coin-front">
+                      <img
+                        src={coinHeads}
+                        alt="Heads"
+                        className="w-full h-full object-contain drop-shadow-2xl"
+                      />
+                    </div>
+                    <div className="coin-face coin-back">
+                      <img
+                        src={coinTails}
+                        alt="Tails"
+                        className="w-full h-full object-contain drop-shadow-2xl"
+                      />
+                    </div>
                   </div>
                 </div>
                 {gameStatus === 'result' && (
@@ -135,16 +207,20 @@ const CoinflipGame = () => {
               <h3 className="text-sm font-semibold text-purple-300 mb-3">История</h3>
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {gameHistory.map((round, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    className={`px-3 py-1 rounded-lg font-bold whitespace-nowrap text-sm transition-all ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${
                       round.result === 'heads'
-                        ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50'
-                        : 'bg-orange-500/30 text-orange-300 border border-orange-500/50'
+                        ? 'bg-blue-500/20 border-blue-500/50'
+                        : 'bg-orange-500/20 border-orange-500/50'
                     }`}
                   >
-                    {round.result === 'heads' ? '🦅' : '🪙'}
-                  </button>
+                    <img
+                      src={round.result === 'heads' ? coinHeads : coinTails}
+                      alt={round.result}
+                      className="w-8 h-8 object-contain"
+                    />
+                  </div>
                 ))}
               </div>
             </Card>
@@ -161,7 +237,7 @@ const CoinflipGame = () => {
                     <Button
                       size="lg"
                       variant={selectedSide === 'heads' ? 'default' : 'outline'}
-                      className={`h-20 text-lg font-bold ${
+                      className={`h-24 text-lg font-bold flex flex-col items-center justify-center gap-2 ${
                         selectedSide === 'heads'
                           ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-500'
                           : 'border-purple-500/50 text-purple-300'
@@ -169,12 +245,13 @@ const CoinflipGame = () => {
                       onClick={() => setSelectedSide('heads')}
                       disabled={gameStatus !== 'idle'}
                     >
-                      🦅 Орел
+                      <img src={coinHeads} alt="Heads" className="w-12 h-12 object-contain" />
+                      <span>Орел</span>
                     </Button>
                     <Button
                       size="lg"
                       variant={selectedSide === 'tails' ? 'default' : 'outline'}
-                      className={`h-20 text-lg font-bold ${
+                      className={`h-24 text-lg font-bold flex flex-col items-center justify-center gap-2 ${
                         selectedSide === 'tails'
                           ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white border-orange-500'
                           : 'border-purple-500/50 text-purple-300'
@@ -182,7 +259,8 @@ const CoinflipGame = () => {
                       onClick={() => setSelectedSide('tails')}
                       disabled={gameStatus !== 'idle'}
                     >
-                      🪙 Решка
+                      <img src={coinTails} alt="Tails" className="w-12 h-12 object-contain" />
+                      <span>Решка</span>
                     </Button>
                   </div>
                 </div>
@@ -310,11 +388,54 @@ const CoinflipGame = () => {
       </main>
 
       <style>{`
-        @keyframes spin {
-          0% { transform: rotateY(0deg) rotateX(0deg); }
-          50% { transform: rotateY(1800deg) rotateX(20deg); }
-          100% { transform: rotateY(3600deg) rotateX(0deg); }
+        .perspective-1000 {
+          perspective: 1000px;
         }
+        
+        .coin-container {
+          position: relative;
+          transform-style: preserve-3d;
+          transition: transform 0.3s ease;
+        }
+        
+        .coin-face {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+        }
+        
+        .coin-front {
+          transform: rotateY(0deg);
+        }
+        
+        .coin-back {
+          transform: rotateY(180deg);
+        }
+        
+        @keyframes coinFlip {
+          0% { 
+            transform: rotateY(0deg) rotateX(0deg);
+          }
+          25% {
+            transform: rotateY(900deg) rotateX(15deg);
+          }
+          50% { 
+            transform: rotateY(1800deg) rotateX(0deg);
+          }
+          75% {
+            transform: rotateY(2700deg) rotateX(-15deg);
+          }
+          100% { 
+            transform: rotateY(3600deg) rotateX(0deg);
+          }
+        }
+        
+        .coin-flip {
+          animation: coinFlip 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
         @keyframes slide-up {
           from {
             opacity: 0;
