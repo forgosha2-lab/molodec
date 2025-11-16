@@ -3,6 +3,7 @@ import { Home, Gamepad2, Trophy, Gift, Menu, Gem, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
+import { subscribeToBalance } from "@/lib/balanceSync";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -17,19 +18,15 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
   const [activeTab, setActiveTab] = useState("home");
   const [syncedBalance, setSyncedBalance] = useState(balance);
 
-  // Sync balance with localStorage or external source
+  // Subscribe to centralized balance changes
   useEffect(() => {
-    const syncBalance = () => {
-      // In a real implementation, this would sync with the CrashCoinRolls server
-      // For now, we'll just use the passed balance
-      setSyncedBalance(balance);
-    };
-
-    syncBalance();
+    setSyncedBalance(balance);
     
-    // Set up periodic sync
-    const interval = setInterval(syncBalance, 5000);
-    return () => clearInterval(interval);
+    const unsubscribe = subscribeToBalance((newBalance) => {
+      setSyncedBalance(newBalance);
+    });
+    
+    return unsubscribe;
   }, [balance]);
 
   const handleNavigation = (path: string, tab: string) => {

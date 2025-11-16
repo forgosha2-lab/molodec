@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Trophy, Gem } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getBalance, setBalance as saveBalance, subscribeToBalance } from "@/lib/balanceSync";
 
 interface Bet {
   id: string;
@@ -47,18 +48,26 @@ const RollsGame = () => {
   const [winnerBet, setWinnerBet] = useState<Bet | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Загрузить баланс из localStorage
+  // Загрузить баланс и подписаться на изменения
   useEffect(() => {
+    const initialBalance = getBalance();
+    setBalance(initialBalance);
+    
     const user = localStorage.getItem('user');
     if (user) {
       try {
         const userData = JSON.parse(user);
-        setBalance(userData.diamonds_balance || 1000);
         setUsername(userData.username || 'Player');
       } catch (e) {
         console.error('Failed to parse user data:', e);
       }
     }
+    
+    const unsubscribe = subscribeToBalance((newBalance) => {
+      setBalance(newBalance);
+    });
+    
+    return unsubscribe;
   }, []);
 
   // Рисовать барабан
@@ -152,7 +161,9 @@ const RollsGame = () => {
       return;
     }
 
-    setBalance(balance - betAmount);
+    const newBalance = balance - betAmount;
+    setBalance(newBalance);
+    saveBalance(newBalance);
 
     const colors = ['#4169E1', '#8B5CF6', '#EC4899', '#F97316', '#10B981', '#06B6D4'];
     const color = colors[bets.length % colors.length];
@@ -231,7 +242,10 @@ const RollsGame = () => {
         setGameStatus('result');
         setWinnerBet({ ...winningBet, amount: currentPot });
         if (winningBet.playerName === username) {
-          setBalance(prev => prev + currentPot);
+          const currentBalance = getBalance();
+          const newBalance = currentBalance + currentPot;
+          setBalance(newBalance);
+          saveBalance(newBalance);
         }
         
         setBets([]);

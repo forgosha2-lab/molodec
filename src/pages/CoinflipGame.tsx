@@ -121,7 +121,8 @@ const CoinflipGame = () => {
 
       if (won) {
         const winAmount = betAmount * 1.95;
-        const newBalance = balance + winAmount;
+        const currentBalance = getBalance();
+        const newBalance = currentBalance + winAmount;
         setBalance(newBalance);
         saveBalance(newBalance);
         setTotalWon(prev => prev + winAmount);
