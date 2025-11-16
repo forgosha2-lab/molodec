@@ -271,40 +271,40 @@ const RollsGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
       {/* Header */}
       <div className="border-b border-purple-500/30 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate('/')}
-              className="hover:bg-purple-500/20 text-white"
+              className="hover:bg-purple-500/20 text-white h-8 w-8 md:h-10 md:w-10"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
-            <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-teal-400 to-blue-400">
+            <div className="text-lg md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-teal-400 to-blue-400">
               ROLLS
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-2">
-              <Gem className="h-5 w-5 text-purple-300" />
-              <div className="text-lg font-bold text-white">{balance.toFixed(0)}</div>
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="px-2 md:px-4 py-1.5 md:py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-1 md:gap-2">
+              <Gem className="h-4 w-4 md:h-5 md:w-5 text-purple-300" />
+              <div className="text-sm md:text-lg font-bold text-white">{balance.toFixed(0)}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Game Area */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-[1fr,300px] gap-6">
+      <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
+        <div className="grid lg:grid-cols-[1fr,300px] gap-4 md:gap-6">
           {/* Game Area */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:gap-4">
             {/* Wheel Display */}
-            <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-purple-500/30 p-8 flex items-center justify-center min-h-[400px]">
+            <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-purple-500/30 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative">
               <div className="relative w-full max-w-md">
                 <canvas
                   ref={canvasRef}
@@ -314,28 +314,33 @@ const RollsGame = () => {
                 />
                 {gameStatus === 'result' && winnerBet && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center bg-slate-900/95 backdrop-blur-sm p-6 rounded-lg border-2 border-green-500 animate-bounce">
-                      <Trophy className="w-12 h-12 mx-auto mb-2 text-green-400" />
-                      <div className="text-2xl font-bold text-white">ВЫИГРЫШ!</div>
-                      <div className="text-lg text-green-400 font-bold">
+                    <div className="text-center bg-slate-900/95 backdrop-blur-sm p-4 md:p-6 rounded-lg border-2 border-green-500 animate-bounce">
+                      <Trophy className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 text-green-400" />
+                      <div className="text-xl md:text-2xl font-bold text-white">ВЫИГРЫШ!</div>
+                      <div className="text-base md:text-lg text-green-400 font-bold">
                         💎 {winnerBet.amount.toFixed(0)}
                       </div>
-                      <div className="text-sm text-purple-300 mt-2">
+                      <div className="text-xs md:text-sm text-purple-300 mt-2">
                         {winnerBet.playerName}
                       </div>
                     </div>
                   </div>
                 )}
               </div>
+              
+              {/* Mobile indicator circle */}
+              <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-lg shadow-red-500/50"></div>
+              </div>
             </Card>
 
             {/* Controls */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-3 md:gap-4">
               {/* Left Panel */}
-              <Card className="bg-slate-800/50 border-purple-500/30 p-6">
-                <div className="space-y-4">
+              <Card className="bg-slate-800/50 border-purple-500/30 p-4 md:p-6">
+                <div className="space-y-3 md:space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-purple-300 mb-2 block">
+                    <label className="text-xs md:text-sm font-medium text-purple-300 mb-2 block">
                       Сумма ставки
                     </label>
                     <div className="flex gap-2">
@@ -343,7 +348,7 @@ const RollsGame = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setBetAmount(Math.max(10, betAmount - 100))}
-                        className="border-purple-500/50 text-purple-300"
+                        className="border-purple-500/50 text-purple-300 h-8 md:h-10"
                       >
                         −
                       </Button>
@@ -352,7 +357,7 @@ const RollsGame = () => {
                         value={betAmount}
                         onChange={(e) => setBetAmount(Number(e.target.value))}
                         disabled={gameStatus !== 'waiting'}
-                        className="flex-1 bg-slate-700 border-purple-500/30 text-white text-center"
+                        className="flex-1 bg-slate-700 border-purple-500/30 text-white text-center text-sm md:text-base h-8 md:h-10"
                         min="1"
                         max={balance}
                       />
@@ -360,7 +365,7 @@ const RollsGame = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setBetAmount(betAmount + 100)}
-                        className="border-purple-500/50 text-purple-300"
+                        className="border-purple-500/50 text-purple-300 h-8 md:h-10"
                       >
                         +
                       </Button>
