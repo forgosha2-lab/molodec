@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem } from "lucide-react";
-import coinHeads from "@/assets/coin-heads.svg";
-import coinTails from "@/assets/coin-tails.svg";
+import coinHeads from "@/assets/coin-heads.png";
+import coinTails from "@/assets/coin-tails.png";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
