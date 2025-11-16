@@ -52,7 +52,36 @@ const CoinflipGame = () => {
         console.error('Failed to parse RTP data:', e);
       }
     }
+    
+    // Слушатель для синхронизации баланса между вкладками
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user' && e.newValue) {
+        try {
+          const userData = JSON.parse(e.newValue);
+          setBalance(userData.diamonds_balance || 1000);
+        } catch (err) {
+          console.error('Failed to sync balance:', err);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+  
+  // Сохранить баланс в localStorage и синхронизировать
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        userData.diamonds_balance = balance;
+        localStorage.setItem('user', JSON.stringify(userData));
+      } catch (e) {
+        console.error('Failed to save balance:', e);
+      }
+    }
+  }, [balance]);
   
   // Сохранить RTP статистику
   useEffect(() => {

@@ -26,6 +26,41 @@ const Index = () => {
 
   useEffect(() => {
     initTelegramAuth();
+    
+    // Обновить баланс при возвращении на страницу
+    const syncBalance = () => {
+      const user = localStorage.getItem('user');
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          setBalance(userData.diamonds_balance || 100);
+        } catch (e) {
+          console.error('Failed to sync balance:', e);
+        }
+      }
+    };
+    
+    // Синхронизация при фокусе на странице
+    window.addEventListener('focus', syncBalance);
+    
+    // Слушатель для синхронизации между вкладками
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user' && e.newValue) {
+        try {
+          const userData = JSON.parse(e.newValue);
+          setBalance(userData.diamonds_balance || 100);
+        } catch (err) {
+          console.error('Failed to sync balance from storage:', err);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('focus', syncBalance);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const initTelegramAuth = async () => {
