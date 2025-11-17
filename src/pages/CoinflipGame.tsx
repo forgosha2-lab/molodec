@@ -157,9 +157,9 @@ const CoinflipGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-700 to-green-900 pb-20 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-gray-800 via-gray-700 to-gray-900 pb-20 md:pb-0">
       {/* Header */}
-      <div className="border-b border-green-500/30 bg-green-900/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="border-b border-gray-500/30 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3">
             <Button

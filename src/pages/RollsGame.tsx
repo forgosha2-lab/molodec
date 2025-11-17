@@ -533,7 +533,7 @@ const RollsGame = () => {
                   {rollsChatMessages.map((msg) => (
                     <div key={msg.id} className="text-sm">
                       <span className="font-semibold text-purple-300">{msg.playerName}: </span>
-                      <span className="text-white">{msg.text}</span>
+                      <span className="text-white">{msg.message}</span>
                     </div>
                   ))}
                 </div>
