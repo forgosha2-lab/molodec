@@ -42,7 +42,7 @@ interface ChatMessage {
 const RollsGame = () => {
   const navigate = useNavigate();
   const [balance, setBalance] = useState(100);
-  const [username, setUsername] = useState("Player");
+  const [username, setUsername] = useState("Игрок");
   const [userId, setUserId] = useState("tg_123456789");
   const [betAmount, setBetAmount] = useState(100);
   const [chatOpen, setChatOpen] = useState(false);
@@ -70,7 +70,7 @@ const RollsGame = () => {
     if (user) {
       try {
         const userData = JSON.parse(user);
-        setUsername(userData.username || 'Player');
+        setUsername(userData.username || 'Игрок');
         setUserId(userData.id || 'tg_123456789');
       } catch (e) {
         console.error('Failed to parse user data:', e);
@@ -215,8 +215,7 @@ const RollsGame = () => {
         ctx.stroke();
 
         // Draw avatar in the middle of segment
-        const betAvatar = (bet as any).avatar_url;
-        if (betAvatar) {
+        if (bet.avatar_url) {
           const midAngle = ((bet.startAngle + bet.endAngle) / 2 * Math.PI) / 180;
           const avatarRadius = radius * 0.65;
           const avatarX = centerX + Math.cos(midAngle) * avatarRadius;
@@ -228,7 +227,7 @@ const RollsGame = () => {
           ctx.clip();
           
           const img = new Image();
-          img.src = betAvatar;
+          img.src = bet.avatar_url;
           ctx.drawImage(img, avatarX - 25, avatarY - 25, 50, 50);
           
           ctx.restore();
@@ -381,13 +380,13 @@ const RollsGame = () => {
                   <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50 p-4 backdrop-blur-sm">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-300 mb-2">
-                        🎉 {(rollsGameState as any).winnerBet.playerName} WINS!
+                        🎉 {(rollsGameState as any).winnerBet.playerName} ПОБЕДИЛ!
                       </div>
                       <div className="text-xl text-white">
-                        💎 {(rollsGameState as any).winnerBet.amount.toFixed(0)} (95% of pot)
+                        💎 {(rollsGameState as any).winnerBet.amount.toFixed(0)} (95% от банка)
                       </div>
                       <div className="text-sm text-gray-300 mt-1">
-                        5% house fee applied
+                        Комиссия дома 5%
                       </div>
                     </div>
                   </Card>
@@ -399,11 +398,11 @@ const RollsGame = () => {
                 {/* My Bet */}
                 {myBet && (
                   <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-500/50 p-4 backdrop-blur-sm shadow-lg shadow-green-500/20">
-                    <div className="text-sm font-semibold text-green-300 mb-2">YOUR BET</div>
+                    <div className="text-sm font-semibold text-green-300 mb-2">ВАША СТАВКА</div>
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-2xl font-bold text-white">💎 {myBet.amount}</div>
-                        <div className="text-sm text-green-200">Win chance: {myBet.percentage.toFixed(1)}%</div>
+                        <div className="text-sm text-green-200">Шанс выигрыша: {myBet.percentage.toFixed(1)}%</div>
                       </div>
                       {(rollsGameState?.status === 'waiting' || rollsGameState?.status === 'countdown') && (
                         <Button
@@ -424,7 +423,7 @@ const RollsGame = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-purple-300 mb-2 block">
-                        Bet Amount
+                        Сумма ставки
                       </label>
                       <div className="flex gap-2">
                         <Button
@@ -472,7 +471,7 @@ const RollsGame = () => {
                       disabled={(rollsGameState?.status !== 'waiting' && rollsGameState?.status !== 'countdown') || betAmount > balance}
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg shadow-purple-500/50"
                     >
-                      {myBet ? 'ADD MORE' : 'PLACE BET'}
+                      {myBet ? 'ДОБАВИТЬ' : 'СДЕЛАТЬ СТАВКУ'}
                     </Button>
                   </div>
                 </Card>
@@ -529,14 +528,14 @@ const RollsGame = () => {
           <Card className="absolute bottom-16 right-0 w-80 h-96 bg-slate-900/95 border-purple-500/30 backdrop-blur-lg">
             <div className="flex flex-col h-full">
               <div className="p-3 border-b border-purple-500/30">
-                <div className="font-bold text-white">Live Chat</div>
+                <div className="font-bold text-white">Чат</div>
               </div>
               <ScrollArea className="flex-1 p-3">
                 <div className="space-y-2">
                   {rollsChatMessages.map((msg) => (
                     <div key={msg.id} className="text-sm">
                       <span className="font-semibold text-purple-300">{msg.playerName}: </span>
-                      <span className="text-white">{(msg as any).message}</span>
+                      <span className="text-white">{msg.message}</span>
                     </div>
                   ))}
                 </div>
@@ -547,7 +546,7 @@ const RollsGame = () => {
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendChatMessageHandler()}
-                    placeholder="Type message..."
+                    placeholder="Введите сообщение..."
                     className="bg-slate-800 border-purple-500/30 text-white"
                   />
                   <Button

@@ -14,6 +14,7 @@ interface RollsGameState {
     percentage: number;
     startAngle: number;
     endAngle: number;
+    avatar_url?: string;
   }>;
   spinResult?: {
     winningColor: string;
@@ -36,7 +37,7 @@ interface ChatMessage {
   id: string;
   playerId: string;
   playerName: string;
-  text: string;
+  message: string;
   timestamp: number;
 }
 
@@ -95,7 +96,7 @@ export function useRollsWebSocket() {
         if (data.playerId) {
           setPlayer({
             id: data.playerId,
-            name: data.playerName || 'Player',
+            name: data.playerName || 'Игрок',
             balance: data.balance || 100,
           });
         }
