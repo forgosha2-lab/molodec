@@ -59,6 +59,18 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 - ✅ Server returns 500 error if ADMIN_KEY not configured or equals placeholder
 - ✅ Prevents unauthorized access to earnings and user data
 
+### November 17, 2025 - Russian Localization and UI Polish
+
+**Complete Russian Localization - COMPLETED**: All user-facing text translated to Russian:
+- ✅ Fixed Rolls game: All English text replaced with Russian (Игрок, ПОБЕДИЛ, Шанс выигрыша, Сумма ставки, ДОБАВИТЬ/СДЕЛАТЬ СТАВКУ, ВАША СТАВКА, Чат, Введите сообщение, 95% от банка, Комиссия дома 5%)
+- ✅ Updated default player names from "Player" to "Игрок" in WebSocket hook
+- ✅ Verified deposit/withdrawal pages show "1 алмаз = 1₽" on both tabs
+- ✅ Fixed TypeScript type alignment: Added avatar_url to Bet interface, changed text to message in ChatMessage
+- ✅ Removed all type assertion casts (as any) after proper interface alignment
+- ✅ Fixed countdown timer to show "Ожидание игроков" when waiting, starts only after 2 players bet
+- ✅ Enabled betting during countdown status (not just waiting)
+- ✅ Pushed database schema to fix "relation does not exist" errors
+
 ### November 17, 2025 - Bug Fixes and UI Updates
 
 **Bug Fixes and UI Improvements - COMPLETED**: Fixed critical issues in Rolls game and updated Coinflip styling:
