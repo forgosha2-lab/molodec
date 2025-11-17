@@ -57,7 +57,11 @@ export function useRollsWebSocket() {
   const socketRef = useRef<Socket | null>(null);
 
   const connect = useCallback(() => {
-    if (socketRef.current?.connected) {
+    if (socketRef.current) {
+      if (socketRef.current.connected) {
+        return;
+      }
+      socketRef.current.connect();
       return;
     }
 
@@ -70,10 +74,8 @@ export function useRollsWebSocket() {
     try {
       const socket = io(socketUrl, {
         path: '/ws-rolls',
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnection: false,
+        autoConnect: true,
       });
 
       socketRef.current = socket;
@@ -144,10 +146,6 @@ export function useRollsWebSocket() {
       socket.on('disconnect', (reason) => {
         console.log('Rolls WebSocket disconnected:', reason);
         setStatus('disconnected');
-        
-        if (reason === 'io server disconnect') {
-          socket.connect();
-        }
       });
 
       socket.on('connect_error', (err) => {
@@ -213,11 +211,9 @@ export function useRollsWebSocket() {
     connect();
     
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      // Keep connection alive - don't disconnect on unmount
     };
-  }, []);
+  }, [connect]);
 
   return {
     status,
