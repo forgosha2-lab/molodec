@@ -147,6 +147,55 @@ async function startServer() {
     }
   });
 
+  app.put('/api/profile/:userId/balance', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { amount, operation } = req.body;
+
+      if (typeof amount !== 'number' || amount < 0) {
+        return res.status(400).json({ error: 'Amount must be a non-negative number' });
+      }
+
+      if (!operation || (operation !== 'add' && operation !== 'subtract' && operation !== 'set')) {
+        return res.status(400).json({ error: 'Invalid operation. Use add/subtract/set' });
+      }
+
+      const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+      if (userResult.length === 0) {
+        return res.status(404).json({ error: 'Пользователь не найден' });
+      }
+
+      const currentBalance = userResult[0].diamondsBalance || 0;
+
+      if (operation === 'subtract' && currentBalance < amount) {
+        return res.status(400).json({ error: 'Недостаточно средств', balance: currentBalance });
+      }
+
+      let newBalance;
+      if (operation === 'set') {
+        newBalance = amount;
+      } else if (operation === 'add') {
+        newBalance = currentBalance + amount;
+      } else {
+        newBalance = currentBalance - amount;
+      }
+
+      const updateResult = await db.update(profiles)
+        .set({ diamondsBalance: newBalance })
+        .where(eq(profiles.id, userId))
+        .returning();
+
+      if (updateResult.length === 0) {
+        return res.status(500).json({ error: 'Не удалось обновить баланс' });
+      }
+
+      res.json({ data: { balance: updateResult[0].diamondsBalance }, error: null });
+    } catch (error) {
+      console.error('Update balance error:', error);
+      res.status(500).json({ error: 'Ошибка при обновлении баланса' });
+    }
+  });
+
   app.get('/api/lobbies', async (req, res) => {
     try {
       const result = await pool.query(`

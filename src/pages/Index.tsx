@@ -15,7 +15,7 @@ import rollsImg from "@/assets/rolls.png";
 import { auth } from "@/integrations/database";
 import { telegram } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
-import { getBalance, subscribeToBalance } from "@/lib/balanceSync";
+import { getBalance, fetchBalanceFromServer, subscribeToBalance } from "@/lib/balanceSync";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -26,11 +26,15 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
-    initTelegramAuth();
+    const init = async () => {
+      await initTelegramAuth();
+      
+      // Load balance from server
+      const serverBalance = await fetchBalanceFromServer();
+      setBalance(serverBalance);
+    };
     
-    // Load initial balance
-    const initialBalance = getBalance();
-    setBalance(initialBalance);
+    init();
     
     // Subscribe to balance changes
     const unsubscribe = subscribeToBalance((newBalance) => {

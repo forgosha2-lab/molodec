@@ -1,0 +1,158 @@
+12The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+12The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+12The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+VM141:8 [Coframe] Replit Enterprise watcher loaded
+molodec:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+molodec:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+molodec:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+99ed2e1956b03e0b.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+99ed2e1956b03e0b.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+99ed2e1956b03e0b.js:2 [LaunchDarkly] LaunchDarkly client initialized
+recaptcha__ru.js:92 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu5mxKOzY.woff2
+recaptcha__ru.js:92 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxK.woff2
+recaptcha__ru.js:92 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v18/KFOlCnqEu92Fr1MmEU9fBBc4.woff2
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+z @ ed1e693c96a75807.js:2
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'battery'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar47%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+injected.js:27 Database initialization skipped - running in browser environment
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_header_color Object
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_bottom_bar_color Object
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_theme 
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_viewport 
+injected.js:27 [Telegram.WebView] > postEvent web_app_ready 
+injected.js:27 [Telegram.WebView] > postEvent web_app_expand 
+injected.js:27 Rolls WebSocket disconnected: transport close
+socket__io-client.js?v=ebda3c98:1035 WebSocket connection to 'wss://86464947-c2b9-47ce-9610-ed757cda19f4-00-tkres95znt9v.janeway.replit.dev/ws-rolls/?EIO=4&transport=websocket' failed: WebSocket is closed before the connection is established.
+doClose @ socket__io-client.js?v=ebda3c98:1035
+googleads.g.doubleclick.net/pagead/viewthroughconversion/11411994397/?random=1763380792530&cv=11&fst=1763380792530&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be5bc1v9171242957za200zd9171242957xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~104527907~104528501~104684208~104684211~105446120~115583767~115616986~115938466~115938469~116217636~116217638&u_w=1920&u_h=1080&url=https%3A%2F%2Freplit.com%2F%40m4b9ctg%2Fmolodec&ref=https%3A%2F%2Freplit.com%2F%40m4b9ctg%2Fmolodec&frm=0&tiba=Loading...%20-%20Replit&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=236617178.1761735483&data=event%3Dgtag.config&rfmt=3&fmt=4:1  Failed to load resource: net::ERR_CONNECTION_RESET
+stats.g.doubleclick.net/j/collect?t=dc&aip=1&_r=3&v=1&_v=j102&tid=UA-25629695-1&cid=1515323761.1761735483&jid=1159082928&gjid=506897771&_gid=729144277.1763295970&_u=SCCAgEAjQAAAAGgCIAD~&z=1173025597:1  Failed to load resource: net::ERR_CONNECTION_RESET
+stats.g.doubleclick.net/g/collect?v=2&tid=G-MPJY3F1YEL&cid=1515323761.1761735483&gtm=45je5bc1v9135634466za200&aip=1&dma=0&gcd=13l3l3l3l2l1&npa=0&frm=0&tag_exp=103116026~103200004~104527907~104528500~104684208~104684211~115583767~115938466~115938469~116217636~116217638:1  Failed to load resource: net::ERR_CONNECTION_RESET
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: Object
+injected.js:27 Join acknowledged: Object
+injected.js:27 Rolls WebSocket disconnected: transport close
+stallwart.build.js:1 stallwart: failed ping 1
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'h_rPugUVA8Nd4HXRAAAE', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'h_rPugUVA8Nd4HXRAAAE', state: {…}}
+stallwart.build.js:1 stallwart: failed ping 2
+injected.js:27 Rolls WebSocket disconnected: transport close
+stallwart.build.js:1 stallwart: failed ping 3
+injected.js:27 Rolls WebSocket connected
+stallwart.build.js:1 stallwart: failed ping 4
+injected.js:27 Connection acknowledged: {connectionId: 'rqI0QFpEac2jKfwRAAAG', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'rqI0QFpEac2jKfwRAAAG', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+stallwart.build.js:1 stallwart: failed ping 5
+stallwart.build.js:1 stallwart: session stalled
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'DT9LW1trMlZLVE4dAAAI', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'DT9LW1trMlZLVE4dAAAI', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: '0K0779hfyoswgHS_AAAK', state: {…}}
+injected.js:27 Join acknowledged: {playerId: '0K0779hfyoswgHS_AAAK', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'S5KXaq8Q3UPzppjHAAAM', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'S5KXaq8Q3UPzppjHAAAM', state: {…}}
+2injected.js:27 Rolls WebSocket error: Insufficient balance
+(anonymous) @ injected.js:27
+(anonymous) @ useRollsWebSocket.ts:139
+Emitter.emit @ socket__io-client.js?v=ebda3c98:354
+emitEvent @ socket__io-client.js?v=ebda3c98:2655
+onevent @ socket__io-client.js?v=ebda3c98:2643
+onpacket @ socket__io-client.js?v=ebda3c98:2614
+Emitter.emit @ socket__io-client.js?v=ebda3c98:354
+(anonymous) @ socket__io-client.js?v=ebda3c98:3218
+Promise.then
+(anonymous) @ socket__io-client.js?v=ebda3c98:372
+ondecoded @ socket__io-client.js?v=ebda3c98:3217
+Emitter.emit @ socket__io-client.js?v=ebda3c98:354
+add @ socket__io-client.js?v=ebda3c98:2069
+ondata @ socket__io-client.js?v=ebda3c98:3206
+Emitter.emit @ socket__io-client.js?v=ebda3c98:354
+_onPacket @ socket__io-client.js?v=ebda3c98:1379
+Emitter.emit @ socket__io-client.js?v=ebda3c98:354
+onPacket @ socket__io-client.js?v=ebda3c98:553
+onData @ socket__io-client.js?v=ebda3c98:545
+ws.onmessage @ socket__io-client.js?v=ebda3c98:1009
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: '2SdLPV1st3JDfwi5AAAO', state: {…}}
+injected.js:27 Join acknowledged: {playerId: '2SdLPV1st3JDfwi5AAAO', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'TpZ3yujasjknivm7AAAQ', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'TpZ3yujasjknivm7AAAQ', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'iFrHZnTVw0ZCf5NoAAAS', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'iFrHZnTVw0ZCf5NoAAAS', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'mBsnUTHilxyKAAr8AAAU', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'mBsnUTHilxyKAAr8AAAU', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close
+injected.js:27 Rolls WebSocket connected
+injected.js:27 Connection acknowledged: {connectionId: 'byiK8gg6h0g2GxclAAAW', state: {…}}
+injected.js:27 Join acknowledged: {playerId: 'byiK8gg6h0g2GxclAAAW', state: {…}}
+injected.js:27 Rolls WebSocket disconnected: transport close

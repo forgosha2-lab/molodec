@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem } from "lucide-react";
 import coinHeads from "@/assets/coin-heads.png";
 import coinTails from "@/assets/coin-tails.png";
-import { getBalance, setBalance as saveBalance, subscribeToBalance } from "@/lib/balanceSync";
+import { getBalance, updateBalance, fetchBalanceFromServer, subscribeToBalance } from "@/lib/balanceSync";
 
 const CoinflipGame = () => {
   const navigate = useNavigate();
@@ -33,8 +33,12 @@ const CoinflipGame = () => {
 
   // Загрузить баланс и подписаться на изменения
   useEffect(() => {
-    const initialBalance = getBalance();
-    setBalance(initialBalance);
+    const loadBalance = async () => {
+      const serverBalance = await fetchBalanceFromServer();
+      setBalance(serverBalance);
+    };
+    
+    loadBalance();
     
     const user = localStorage.getItem('user');
     if (user) {
@@ -78,19 +82,26 @@ const CoinflipGame = () => {
     }));
   }, [totalWagered, totalWon, totalLosses, totalWonBetAmounts]);
 
-  const flip = () => {
+  const flip = async () => {
     if (betAmount > balance) {
       alert('Недостаточно средств');
       return;
     }
 
-    const newBalance = balance - betAmount;
-    setBalance(newBalance);
-    saveBalance(newBalance);
     setGameStatus('flipping');
 
+    try {
+      const newBalance = await updateBalance(betAmount, 'subtract');
+      setBalance(newBalance);
+    } catch (error) {
+      console.error('Failed to update balance:', error);
+      setGameStatus('idle');
+      alert('Ошибка при обновлении баланса');
+      return;
+    }
+
     // Анимация вращения
-    setTimeout(() => {
+    setTimeout(async () => {
       let winChance = 0.5; // Базовый шанс 50% (справедливая игра)
       
       // Вычисляем текущий чистый результат игрока
@@ -128,10 +139,14 @@ const CoinflipGame = () => {
         // Возврат ставки + 95% от ставки = 1.9x total
         const winAmount = betAmount * 1.9;
         const profit = betAmount * 0.9; // Чистая прибыль после вычета комиссии
-        const currentBalance = getBalance();
-        const newBalance = currentBalance + winAmount;
-        setBalance(newBalance);
-        saveBalance(newBalance);
+        
+        try {
+          const newBalance = await updateBalance(winAmount, 'add');
+          setBalance(newBalance);
+        } catch (error) {
+          console.error('Failed to add winnings:', error);
+        }
+        
         setTotalWon(prev => prev + profit); // Считаем только чистую прибыль
         setTotalWonBetAmounts(prev => prev + betAmount); // Учитываем выигрышную ставку
       } else {
