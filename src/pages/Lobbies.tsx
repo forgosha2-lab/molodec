@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Users, Gem, Lock, Unlock } from "lucide-react";
@@ -193,21 +195,49 @@ const Lobbies = () => {
   };
 
   // Filter states
-  const [filterBet, setFilterBet] = useState("all");
-  const [filterPlayers, setFilterPlayers] = useState("all");
-  const [filterDeck, setFilterDeck] = useState("all");
-  const [filterType, setFilterType] = useState("all");
+  const [betRange, setBetRange] = useState([50, 500000]); // Min and Max bet
+  const [selectedPlayers, setSelectedPlayers] = useState<number[]>([2, 3, 4, 6]); // All selected by default
+  const [selectedDecks, setSelectedDecks] = useState<number[]>([24, 36, 52]); // All selected by default
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["подкидной", "переводной", "соседи_все"]); // All selected by default
 
   const filteredLobbies = lobbies.filter(lobby => {
-    if (filterBet !== "all" && lobby.bet_amount !== parseInt(filterBet)) return false;
-    if (filterPlayers !== "all" && lobby.max_players !== parseInt(filterPlayers)) return false;
-    if (filterDeck !== "all" && lobby.deck_size !== parseInt(filterDeck)) return false;
-    if (filterType !== "all") {
-      if (filterType === "подкидной" && !lobby.is_throw_in) return false;
-      if (filterType === "переводной" && lobby.is_throw_in) return false;
+    // Filter by bet amount range
+    if (lobby.bet_amount < betRange[0] || lobby.bet_amount > betRange[1]) return false;
+    
+    // Filter by player count (only if any selected)
+    if (selectedPlayers.length > 0 && !selectedPlayers.includes(lobby.max_players)) return false;
+    
+    // Filter by deck size (only if any selected)
+    if (selectedDecks.length > 0 && !selectedDecks.includes(lobby.deck_size)) return false;
+    
+    // Filter by game type (only if any selected)
+    if (selectedTypes.length > 0) {
+      const lobbyType = lobby.is_throw_in ? "подкидной" : "переводной";
+      // Note: "соседи_все" type is not yet implemented in the backend
+      // For now, it won't filter out any lobbies
+      if (!selectedTypes.includes(lobbyType) && !selectedTypes.includes("соседи_все")) return false;
     }
+    
     return true;
   });
+
+  const togglePlayerFilter = (player: number) => {
+    setSelectedPlayers(prev => 
+      prev.includes(player) ? prev.filter(p => p !== player) : [...prev, player]
+    );
+  };
+
+  const toggleDeckFilter = (deck: number) => {
+    setSelectedDecks(prev => 
+      prev.includes(deck) ? prev.filter(d => d !== deck) : [...prev, deck]
+    );
+  };
+
+  const toggleTypeFilter = (type: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -334,65 +364,100 @@ const Lobbies = () => {
             </div>
 
             {/* Filters Section */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-semibold mb-4">Фильтры</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <Label>Ставка</Label>
-                  <Select value={filterBet} onValueChange={setFilterBet}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Любая" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Любая</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="500">500</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Card className="p-6 mb-6">
+              <h3 className="font-semibold mb-6 text-lg">Фильтры</h3>
+              
+              {/* Bet Range Slider */}
+              <div className="mb-6">
+                <Label className="mb-3 block">Диапазон ставок: <span className="font-bold">{betRange[0]} - {betRange[1]}</span> 💎</Label>
+                <div className="px-2">
+                  <Slider
+                    value={betRange}
+                    onValueChange={setBetRange}
+                    min={50}
+                    max={500000}
+                    step={50}
+                    minStepsBetweenThumbs={1}
+                    className="mb-2"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>50</span>
+                    <span>100</span>
+                    <span>250</span>
+                    <span>500</span>
+                    <span>1K</span>
+                    <span>2.5K</span>
+                    <span>5K</span>
+                    <span>10K</span>
+                    <span>25K</span>
+                    <span>50K</span>
+                    <span>100K</span>
+                    <span>250K</span>
+                    <span>500K</span>
+                  </div>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Players Filter */}
                 <div>
-                  <Label>Игроков</Label>
-                  <Select value={filterPlayers} onValueChange={setFilterPlayers}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Любое" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Любое</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-3 block">Количество игроков</Label>
+                  <div className="space-y-2">
+                    {[2, 3, 4, 6].map((count) => (
+                      <div key={count} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`players-${count}`}
+                          checked={selectedPlayers.includes(count)}
+                          onCheckedChange={() => togglePlayerFilter(count)}
+                        />
+                        <label htmlFor={`players-${count}`} className="text-sm cursor-pointer">
+                          {count} игрока
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Deck Filter */}
                 <div>
-                  <Label>Колода</Label>
-                  <Select value={filterDeck} onValueChange={setFilterDeck}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Любая" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Любая</SelectItem>
-                      <SelectItem value="24">24</SelectItem>
-                      <SelectItem value="36">36</SelectItem>
-                      <SelectItem value="52">52</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-3 block">Размер колоды</Label>
+                  <div className="space-y-2">
+                    {[24, 36, 52].map((size) => (
+                      <div key={size} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`deck-${size}`}
+                          checked={selectedDecks.includes(size)}
+                          onCheckedChange={() => toggleDeckFilter(size)}
+                        />
+                        <label htmlFor={`deck-${size}`} className="text-sm cursor-pointer">
+                          {size} карт
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Game Type Filter */}
                 <div>
-                  <Label>Тип игры</Label>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Все типы</SelectItem>
-                      <SelectItem value="подкидной">Подкидной</SelectItem>
-                      <SelectItem value="переводной">Переводной</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-3 block">Тип игры</Label>
+                  <div className="space-y-2">
+                    {[
+                      { id: "подкидной", label: "Подкидной" },
+                      { id: "переводной", label: "Переводной" },
+                      { id: "соседи_все", label: "Соседи все" }
+                    ].map((type) => (
+                      <div key={type.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`type-${type.id}`}
+                          checked={selectedTypes.includes(type.id)}
+                          onCheckedChange={() => toggleTypeFilter(type.id)}
+                        />
+                        <label htmlFor={`type-${type.id}`} className="text-sm cursor-pointer">
+                          {type.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Card>

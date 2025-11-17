@@ -28,6 +28,8 @@ const CoinflipGame = () => {
   // RTP tracking
   const [totalWagered, setTotalWagered] = useState(0);
   const [totalWon, setTotalWon] = useState(0);
+  const [totalLosses, setTotalLosses] = useState(0); // Track cumulative bet amounts on losses
+  const [totalWonBetAmounts, setTotalWonBetAmounts] = useState(0); // Track cumulative bet amounts that won
 
   // Загрузить баланс и подписаться на изменения
   useEffect(() => {
@@ -48,9 +50,11 @@ const CoinflipGame = () => {
     const rtpData = localStorage.getItem('coinflip_rtp');
     if (rtpData) {
       try {
-        const { wagered, won } = JSON.parse(rtpData);
+        const { wagered, won, losses, wonBetAmounts } = JSON.parse(rtpData);
         setTotalWagered(wagered || 0);
         setTotalWon(won || 0);
+        setTotalLosses(losses || 0);
+        setTotalWonBetAmounts(wonBetAmounts || 0);
       } catch (e) {
         console.error('Failed to parse RTP data:', e);
       }
@@ -68,9 +72,11 @@ const CoinflipGame = () => {
   useEffect(() => {
     localStorage.setItem('coinflip_rtp', JSON.stringify({
       wagered: totalWagered,
-      won: totalWon
+      won: totalWon,
+      losses: totalLosses,
+      wonBetAmounts: totalWonBetAmounts
     }));
-  }, [totalWagered, totalWon]);
+  }, [totalWagered, totalWon, totalLosses, totalWonBetAmounts]);
 
   const flip = () => {
     if (betAmount > balance) {
@@ -82,31 +88,29 @@ const CoinflipGame = () => {
     setBalance(newBalance);
     saveBalance(newBalance);
     setGameStatus('flipping');
-    
-    // Обновить статистику ставок
-    setTotalWagered(prev => prev + betAmount);
 
     // Анимация вращения
     setTimeout(() => {
-      // Расчет RTP: если игрок выиграл больше 95% от проигранного, снизить шансы
-      const netLoss = totalWagered - totalWon; // Сколько игрок проиграл
-      const maxAllowedWin = totalWagered * 0.95; // Максимум 95% от всех ставок
-      const currentRTP = totalWagered > 0 ? (totalWon / totalWagered) : 0;
+      let winChance = 0.5; // Базовый шанс 50% (справедливая игра)
       
-      let winChance = 0.5; // Базовый шанс 50%
+      // Вычисляем текущий чистый результат игрока
+      // totalWon - cumulative profit from wins
+      // totalLosses - cumulative bet amounts on losses
+      const currentNetProfit = totalWon - totalLosses;
+      const potentialProfit = betAmount * 0.9; // Прибыль при выигрыше (5% комиссия)
+      const futureNetProfit = currentNetProfit + potentialProfit;
       
-      // Если RTP игрока больше 95%, уменьшаем шансы на выигрыш
-      if (currentRTP > 0.95) {
-        winChance = 0.3; // Снижаем до 30%
-      } else if (currentRTP > 0.90) {
-        winChance = 0.4; // Снижаем до 40%
+      // Блокируем выигрыш, если это сделает игрока чистым положительным
+      // Это означает: игрок никогда не может быть в плюсе overall
+      if (futureNetProfit > 0) {
+        winChance = 0; // Не даем выигрывать
       }
       
       const random = Math.random();
       let flipResult: 'heads' | 'tails';
       let won: boolean;
       
-      // Определяем результат с учетом RTP
+      // Определяем результат с учетом ограничений
       if (random < winChance) {
         flipResult = selectedSide; // Игрок выигрывает
         won = true;
@@ -120,13 +124,23 @@ const CoinflipGame = () => {
       setGameStatus('result');
 
       if (won) {
-        const winAmount = betAmount * 1.95;
+        // Выплата с учетом комиссии 5% (игрок получает ставку обратно + 90% прибыли)
+        // Возврат ставки + 95% от ставки = 1.9x total
+        const winAmount = betAmount * 1.9;
+        const profit = betAmount * 0.9; // Чистая прибыль после вычета комиссии
         const currentBalance = getBalance();
         const newBalance = currentBalance + winAmount;
         setBalance(newBalance);
         saveBalance(newBalance);
-        setTotalWon(prev => prev + winAmount);
+        setTotalWon(prev => prev + profit); // Считаем только чистую прибыль
+        setTotalWonBetAmounts(prev => prev + betAmount); // Учитываем выигрышную ставку
+      } else {
+        // Игрок проиграл - увеличиваем totalLosses
+        setTotalLosses(prev => prev + betAmount);
       }
+      
+      // Обновить статистику ставок после результата
+      setTotalWagered(prev => prev + betAmount);
 
       // Добавить в историю
       setGameHistory(prev => [
@@ -143,9 +157,9 @@ const CoinflipGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-700 to-green-900 pb-20 md:pb-0">
       {/* Header */}
-      <div className="border-b border-purple-500/30 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="border-b border-green-500/30 bg-green-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3">
             <Button

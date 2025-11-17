@@ -48,10 +48,11 @@ export function setupRollsWebSocket(httpServer: any) {
   const connections = new Map<string, WebSocket>();
   const players = new Map<string, Player>();
   
-  const COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FB923C', '#34D399', '#22D3EE'];
+  const COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FB923C', '#34D399', '#22D3EE', '#1A1A1A'];
   const HOUSE_FEE = 0.05; // 5% commission
   const BET_DURATION = 25000; // 25 seconds
   const SPIN_DURATION = 5000; // 5 seconds
+  const MIN_PLAYERS_TO_START = 2; // Auto-start when 2 players have bet
   
   let gameState: GameState = {
     status: 'waiting',
@@ -66,6 +67,7 @@ export function setupRollsWebSocket(httpServer: any) {
   
   let gameTimer: NodeJS.Timeout | null = null;
   let spinAnimationFrame: any = null;
+  let autoStartTimer: NodeJS.Timeout | null = null;
 
   // Broadcast state to all connected clients
   function broadcastState() {
@@ -83,6 +85,12 @@ export function setupRollsWebSocket(httpServer: any) {
 
   // Start a new round
   function startNewRound() {
+    // Clear any pending auto-start timer
+    if (autoStartTimer) {
+      clearTimeout(autoStartTimer);
+      autoStartTimer = null;
+    }
+    
     gameState = {
       status: 'waiting',
       bets: [],
@@ -135,6 +143,12 @@ export function setupRollsWebSocket(httpServer: any) {
 
   // Calculate winner and spin
   function startSpin() {
+    // Clear any pending auto-start timer
+    if (autoStartTimer) {
+      clearTimeout(autoStartTimer);
+      autoStartTimer = null;
+    }
+    
     gameState.status = 'spinning';
     broadcastState();
 
@@ -407,6 +421,28 @@ export function setupRollsWebSocket(httpServer: any) {
       type: 'BET_PLACED',
       bet: gameState.bets.find(b => b.playerId === connectionId)
     }));
+
+    // Auto-start if we have 2 or more unique players
+    const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
+    if (uniquePlayers.size >= MIN_PLAYERS_TO_START && gameState.status === 'waiting') {
+      // Clear previous auto-start timer if exists
+      if (autoStartTimer) {
+        clearTimeout(autoStartTimer);
+        autoStartTimer = null;
+      }
+      
+      // Clear the betting countdown timer to prevent double-trigger
+      if (gameTimer) {
+        clearInterval(gameTimer);
+        gameTimer = null;
+      }
+      
+      // Schedule auto-start
+      autoStartTimer = setTimeout(() => {
+        autoStartTimer = null;
+        startSpin();
+      }, 1000); // Small delay for dramatic effect
+    }
   }
 
   async function handleCancelBet(connectionId: string, ws: WebSocket) {
@@ -439,6 +475,19 @@ export function setupRollsWebSocket(httpServer: any) {
         b.endAngle = startAngle + (b.percentage / 100) * 360;
         startAngle = b.endAngle;
       });
+    }
+    
+    // Clear auto-start timer if bet count drops below minimum
+    const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
+    if (uniquePlayers.size < MIN_PLAYERS_TO_START && autoStartTimer) {
+      clearTimeout(autoStartTimer);
+      autoStartTimer = null;
+      
+      // Restart the betting timer if it was cleared
+      if (!gameTimer) {
+        gameState.timeRemaining = BET_DURATION;
+        startBettingTimer();
+      }
     }
 
     broadcastState();
