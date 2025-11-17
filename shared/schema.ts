@@ -115,6 +115,15 @@ export const gameEmojis = pgTable('game_emojis', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
+// Game earnings table (house fee tracking)
+export const gameEarnings = pgTable('game_earnings', {
+  id: text('id').primaryKey(),
+  game: text('game').notNull(), // 'rolls' or 'coinflip'
+  amount: real('amount').notNull(), // Amount earned from house fee
+  roundId: text('round_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many }) => ({
   friendships: many(friendships),

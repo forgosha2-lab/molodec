@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface RollsGameState {
-  status: 'waiting' | 'spinning' | 'result';
+  status: 'waiting' | 'countdown' | 'spinning' | 'result';
   totalPot: number;
+  countdown?: number;
   bets: Array<{
     id: string;
     playerId: string;
@@ -95,7 +96,7 @@ export function useRollsWebSocket() {
           setPlayer({
             id: data.playerId,
             name: data.playerName || 'Player',
-            balance: data.balance || 1000,
+            balance: data.balance || 100,
           });
         }
         if (data.state) {

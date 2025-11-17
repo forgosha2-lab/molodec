@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
 import { db } from './db.js';
-import { profiles } from '../shared/schema.js';
+import { profiles, gameEarnings } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import type { Server as HTTPServer } from 'http';
 
@@ -26,7 +26,7 @@ interface Bet {
 }
 
 interface GameState {
-  status: 'waiting' | 'spinning' | 'result';
+  status: 'waiting' | 'countdown' | 'spinning' | 'result';
   bets: Bet[];
   totalPot: number;
   timeRemaining: number;
@@ -57,24 +57,23 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
   
   const COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FB923C', '#34D399', '#22D3EE', '#1A1A1A'];
   const HOUSE_FEE = 0.05; // 5% commission
-  const BET_DURATION = 25000; // 25 seconds
+  const COUNTDOWN_DURATION = 25000; // 25 seconds
   const SPIN_DURATION = 5000; // 5 seconds
-  const MIN_PLAYERS_TO_START = 2; // Auto-start when 2 players have bet
+  const MIN_PLAYERS_TO_START = 2; // Start countdown when 2 players have bet
   
   let gameState: GameState = {
     status: 'waiting',
     bets: [],
     totalPot: 0,
-    timeRemaining: BET_DURATION,
+    timeRemaining: 0,
     winnerBet: null,
     rotation: 0,
     roundId: randomUUID(),
     chatMessages: []
   };
   
-  let gameTimer: NodeJS.Timeout | null = null;
+  let countdownTimer: NodeJS.Timeout | null = null;
   let spinAnimationFrame: any = null;
-  let autoStartTimer: NodeJS.Timeout | null = null;
 
   // Broadcast state to all connected clients
   function broadcastState() {
@@ -83,38 +82,41 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
 
   // Start a new round
   function startNewRound() {
-    // Clear any pending auto-start timer
-    if (autoStartTimer) {
-      clearTimeout(autoStartTimer);
-      autoStartTimer = null;
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
     }
     
     gameState = {
       status: 'waiting',
       bets: [],
       totalPot: 0,
-      timeRemaining: BET_DURATION,
+      timeRemaining: 0,
       winnerBet: null,
       rotation: 0,
       roundId: randomUUID(),
       chatMessages: gameState.chatMessages.slice(-50) // Keep last 50 messages
     };
     
-    startBettingTimer();
     broadcastState();
   }
 
-  // Start betting timer
-  function startBettingTimer() {
-    if (gameTimer) clearInterval(gameTimer);
+  // Start countdown when 2nd player places bet
+  function startCountdown() {
+    if (countdownTimer) clearInterval(countdownTimer);
     
-    gameTimer = setInterval(() => {
+    gameState.status = 'countdown';
+    gameState.timeRemaining = COUNTDOWN_DURATION;
+    broadcastState();
+    
+    countdownTimer = setInterval(() => {
       gameState.timeRemaining -= 100;
       
       if (gameState.timeRemaining <= 0) {
-        if (gameTimer) clearInterval(gameTimer);
+        if (countdownTimer) clearInterval(countdownTimer);
+        countdownTimer = null;
         
-        // Check if we have at least 2 unique bettors
+        // Check if we still have at least 2 unique bettors
         const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
         if (uniquePlayers.size >= 2) {
           startSpin();
@@ -122,32 +124,21 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
           // Only one bet - refund and reset
           const bet = gameState.bets[0];
           refundPlayer(bet.userId, bet.amount, bet.playerId);
-          
-          gameState.timeRemaining = BET_DURATION;
-          gameState.bets = [];
-          gameState.totalPot = 0;
-          startBettingTimer();
-          broadcastState();
+          startNewRound();
         } else {
-          // No bets - just reset timer
-          gameState.timeRemaining = BET_DURATION;
-          startBettingTimer();
+          // No bets - reset
+          startNewRound();
         }
+      } else {
+        broadcastState();
       }
-      
-      broadcastState();
     }, 100);
   }
 
   // Calculate winner and spin
-  function startSpin() {
-    // Clear any pending auto-start timer
-    if (autoStartTimer) {
-      clearTimeout(autoStartTimer);
-      autoStartTimer = null;
-    }
-    
+  async function startSpin() {
     gameState.status = 'spinning';
+    gameState.timeRemaining = 0;
     broadcastState();
 
     // Calculate winner based on bet percentages
@@ -166,6 +157,19 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
     // Calculate house fee (5%)
     const houseFee = gameState.totalPot * HOUSE_FEE;
     const winAmount = gameState.totalPot - houseFee;
+
+    // Track house earnings in database
+    try {
+      await db.insert(gameEarnings).values({
+        id: randomUUID(),
+        game: 'rolls',
+        amount: houseFee,
+        roundId: gameState.roundId,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error tracking house earnings:', error);
+    }
 
     // Animate spin
     const winningAngle = (winningBet.startAngle + winningBet.endAngle) / 2;
@@ -262,15 +266,17 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
     socket.on('JOIN', async (message: any) => {
       const { userId, username } = message;
       
-      // Get user avatar from database
+      // Get user avatar and balance from database
       let avatarUrl = null;
+      let balance = 100; // Default balance
       try {
         const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
         if (userResult.length > 0) {
           avatarUrl = userResult[0].avatarUrl;
+          balance = userResult[0].diamondsBalance || 100;
         }
       } catch (error) {
-        console.error('Error fetching user avatar:', error);
+        console.error('Error fetching user data:', error);
       }
 
       const player: Player = {
@@ -284,6 +290,7 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
 
       socket.emit('JOIN_ACK', {
         playerId: connectionId,
+        balance: balance,
         state: gameState
       });
     });
@@ -298,12 +305,12 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
         return;
       }
 
-      if (gameState.status !== 'waiting') {
-        socket.emit('ERROR', { message: 'Cannot bet during spin' });
+      if (gameState.status === 'spinning' || gameState.status === 'result') {
+        socket.emit('ERROR', { message: 'Cannot bet during spin or result phase' });
         return;
       }
 
-      // ALWAYS check and debit balance in database (even for adding to existing bet)
+      // Check and debit balance in database
       try {
         const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
         if (userResult.length === 0 || (userResult[0].diamondsBalance || 0) < amount) {
@@ -329,7 +336,7 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
           const newBet: Bet = {
             id: randomUUID(),
             playerId: connectionId,
-            userId: userId,  // Store userId for later payout
+            userId: userId,
             playerName: player.name,
             amount,
             color: COLORS[colorIndex],
@@ -365,33 +372,17 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
         bet: gameState.bets.find(b => b.playerId === connectionId)
       });
 
-      // Auto-start if we have 2 or more unique players
+      // Start countdown if we have 2 or more unique players and we're in waiting state
       const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
       if (uniquePlayers.size >= MIN_PLAYERS_TO_START && gameState.status === 'waiting') {
-        // Clear previous auto-start timer if exists
-        if (autoStartTimer) {
-          clearTimeout(autoStartTimer);
-          autoStartTimer = null;
-        }
-        
-        // Clear the betting countdown timer to prevent double-trigger
-        if (gameTimer) {
-          clearInterval(gameTimer);
-          gameTimer = null;
-        }
-        
-        // Schedule auto-start
-        autoStartTimer = setTimeout(() => {
-          autoStartTimer = null;
-          startSpin();
-        }, 1000); // Small delay for dramatic effect
+        startCountdown();
       }
     });
 
     // Handle CANCEL_BET event
     socket.on('CANCEL_BET', async () => {
-      if (gameState.status !== 'waiting') {
-        socket.emit('ERROR', { message: 'Cannot cancel bet during spin' });
+      if (gameState.status === 'spinning' || gameState.status === 'result') {
+        socket.emit('ERROR', { message: 'Cannot cancel bet during spin or result phase' });
         return;
       }
 
@@ -421,17 +412,15 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
         });
       }
       
-      // Clear auto-start timer if bet count drops below minimum
+      // If bet count drops below minimum, stop countdown and go back to waiting
       const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
-      if (uniquePlayers.size < MIN_PLAYERS_TO_START && autoStartTimer) {
-        clearTimeout(autoStartTimer);
-        autoStartTimer = null;
-        
-        // Restart the betting timer if it was cleared
-        if (!gameTimer) {
-          gameState.timeRemaining = BET_DURATION;
-          startBettingTimer();
+      if (uniquePlayers.size < MIN_PLAYERS_TO_START && gameState.status === 'countdown') {
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
         }
+        gameState.status = 'waiting';
+        gameState.timeRemaining = 0;
       }
 
       broadcastState();

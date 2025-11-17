@@ -25,6 +25,7 @@ const Index = () => {
   const [balance, setBalance] = useState(100);
   const [username, setUsername] = useState("Игрок");
   const [activeTab, setActiveTab] = useState("home");
+  const [topPlayers, setTopPlayers] = useState<any[]>([]);
   const [emblaRef] = useEmblaCarousel({ 
     align: 'start', 
     dragFree: true,
@@ -38,6 +39,9 @@ const Index = () => {
       // Load balance from server
       const serverBalance = await fetchBalanceFromServer();
       setBalance(serverBalance);
+      
+      // Load top players
+      await loadTopPlayers();
     };
     
     init();
@@ -49,6 +53,18 @@ const Index = () => {
     
     return unsubscribe;
   }, []);
+
+  const loadTopPlayers = async () => {
+    try {
+      const response = await fetch('/api/leaderboard/top?limit=5');
+      const { data } = await response.json();
+      if (data) {
+        setTopPlayers(data);
+      }
+    } catch (error) {
+      console.error('Error loading top players:', error);
+    }
+  };
 
   const initTelegramAuth = async () => {
     try {
@@ -139,7 +155,7 @@ const Index = () => {
         onMenuClick={() => {}}
         balance={balance}
         username={username}
-        onDepositClick={() => toast({ title: "Пополнение", description: "Функция в разработке" })}
+        onDepositClick={() => navigate("/deposit")}
       />
 
       <div className="flex">
@@ -150,7 +166,8 @@ const Index = () => {
               <img
                 src={bonusBanner}
                 alt="Bonus Banner"
-                className="w-full h-[200px] sm:h-[300px] md:h-[400px] object-cover"
+                className="w-full h-[180px] xs:h-[220px] sm:h-[280px] md:h-[350px] lg:h-[400px] object-cover object-center"
+                style={{ objectFit: 'cover' }}
               />
               <div className="absolute inset-0 flex items-center justify-between px-4 md:px-8">
                 <Button
@@ -181,8 +198,8 @@ const Index = () => {
             </div>
 
             <div className="md:hidden overflow-hidden -mx-4 px-4" ref={emblaRef}>
-              <div className="flex gap-3 pb-4">
-                <div className="flex-[0_0_75%] min-w-0">
+              <div className="flex gap-2 pb-4">
+                <div className="flex-[0_0_72%] min-w-0">
                   <GameCard
                     title="UNO"
                     image={unoImg}
@@ -190,7 +207,7 @@ const Index = () => {
                     onClick={handleUnoClick}
                   />
                 </div>
-                <div className="flex-[0_0_75%] min-w-0">
+                <div className="flex-[0_0_72%] min-w-0">
                   <GameCard
                     title="Дурак"
                     image={durakImg}
@@ -198,7 +215,7 @@ const Index = () => {
                     onClick={handleDurakClick}
                   />
                 </div>
-                <div className="flex-[0_0_75%] min-w-0">
+                <div className="flex-[0_0_72%] min-w-0">
                   <GameCard
                     title="Coinflip"
                     image={coinflipImg}
@@ -206,7 +223,7 @@ const Index = () => {
                     onClick={() => navigate("/coinflip-game")}
                   />
                 </div>
-                <div className="flex-[0_0_75%] min-w-0">
+                <div className="flex-[0_0_72%] min-w-0">
                   <GameCard
                     title="Rolls"
                     image={rollsImg}
@@ -256,24 +273,31 @@ const Index = () => {
 
             <Card className="p-4 md:p-6">
               <div className="space-y-2 md:space-y-4">
-                {[
-                  { rank: 1, name: "Player***", balance: "💎 125,890" },
-                  { rank: 2, name: "Gamer***", balance: "💎 98,450" },
-                  { rank: 3, name: "Pro***", balance: "💎 87,230" },
-                  { rank: 4, name: "Winner***", balance: "💎 76,540" },
-                  { rank: 5, name: "Lucky***", balance: "💎 65,890" },
-                ].map((player) => (
+                {(topPlayers.length > 0 ? topPlayers : [
+                  { username: "Player***", diamondsBalance: 125890 },
+                  { username: "Gamer***", diamondsBalance: 98450 },
+                  { username: "Pro***", diamondsBalance: 87230 },
+                  { username: "Winner***", diamondsBalance: 76540 },
+                  { username: "Lucky***", diamondsBalance: 65890 },
+                ]).map((player, index) => (
                   <div
-                    key={player.rank}
+                    key={player.id || index}
                     className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
                   >
-                    <div className="flex items-center justify-between gap-2 md:gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                       <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-sm md:text-base">
-                        {player.rank}
+                        {index + 1}
                       </div>
-                      <span className="font-semibold text-sm md:text-base">{player.name}</span>
+                      {player.avatarUrl && (
+                        <img
+                          src={player.avatarUrl}
+                          alt={player.username}
+                          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="font-semibold text-sm md:text-base">{player.username}</span>
                     </div>
-                    <span className="font-bold text-sm md:text-lg">{player.balance}</span>
+                    <span className="font-bold text-sm md:text-lg">💎 {(player.diamondsBalance || 0).toLocaleString()}</span>
                   </div>
                 ))}
               </div>

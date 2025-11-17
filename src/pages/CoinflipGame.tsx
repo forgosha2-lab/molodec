@@ -157,6 +157,19 @@ const CoinflipGame = () => {
       // Обновить статистику ставок после результата
       setTotalWagered(prev => prev + betAmount);
 
+      // Record 5% house earnings after the game completes
+      const houseFee = betAmount * 0.05;
+      try {
+        await fetch('http://localhost:3003/api/game-earnings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game: 'coinflip', amount: houseFee })
+        });
+      } catch (error) {
+        console.error('Failed to record earnings:', error);
+        // Don't fail the game if earnings recording fails
+      }
+
       // Добавить в историю
       setGameHistory(prev => [
         { result: flipResult, timestamp: Date.now() },

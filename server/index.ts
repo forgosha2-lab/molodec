@@ -196,6 +196,128 @@ async function startServer() {
     }
   });
 
+  // Get top players leaderboard
+  app.get('/api/leaderboard/top', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topPlayers = await db.select({
+        id: profiles.id,
+        username: profiles.username,
+        avatarUrl: profiles.avatarUrl,
+        diamondsBalance: profiles.diamondsBalance,
+        totalWins: profiles.totalWins,
+        level: profiles.level
+      })
+        .from(profiles)
+        .orderBy(desc(profiles.diamondsBalance))
+        .limit(limit);
+
+      res.json({ data: topPlayers, error: null });
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      res.status(500).json({ error: 'Ошибка при получении рейтинга' });
+    }
+  });
+
+  // Get admin earnings stats
+  app.get('/api/admin/earnings', async (req, res) => {
+    try {
+      const { adminKey } = req.query;
+      
+      // Admin key check - require configured ADMIN_KEY
+      const requiredKey = process.env.ADMIN_KEY;
+      if (!requiredKey || requiredKey === 'CHANGE_THIS_IN_PRODUCTION') {
+        return res.status(500).json({ error: 'Admin key not configured' });
+      }
+      if (!adminKey || adminKey !== requiredKey) {
+        return res.status(403).json({ error: 'Недостаточно прав' });
+      }
+
+      const result = await pool.query(`
+        SELECT 
+          game,
+          COUNT(*) as total_rounds,
+          SUM(amount) as total_earnings,
+          AVG(amount) as avg_earnings_per_round,
+          MAX(amount) as max_earnings_in_round,
+          MIN(created_at) as first_earning,
+          MAX(created_at) as last_earning
+        FROM game_earnings
+        GROUP BY game
+        ORDER BY total_earnings DESC
+      `);
+
+      const totalEarnings = await pool.query(`
+        SELECT SUM(amount) as total FROM game_earnings
+      `);
+
+      res.json({ 
+        data: {
+          byGame: result.rows,
+          total: totalEarnings.rows[0]?.total || 0
+        },
+        error: null 
+      });
+    } catch (error) {
+      console.error('Get admin earnings error:', error);
+      res.status(500).json({ error: 'Ошибка при получении статистики' });
+    }
+  });
+
+  // Record game earnings (for Coinflip and other games)
+  app.post('/api/game-earnings', async (req, res) => {
+    try {
+      const { game, amount } = req.body;
+
+      if (!game || typeof amount !== 'number') {
+        return res.status(400).json({ error: 'Invalid game or amount' });
+      }
+
+      await pool.query(
+        'INSERT INTO game_earnings (game, amount) VALUES ($1, $2)',
+        [game, amount]
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Record earnings error:', error);
+      res.status(500).json({ error: 'Ошибка при записи заработка' });
+    }
+  });
+
+  // Get all users (admin only)
+  app.get('/api/admin/users', async (req, res) => {
+    try {
+      const { adminKey, search } = req.query;
+      
+      // Admin key check - require configured ADMIN_KEY
+      const requiredKey = process.env.ADMIN_KEY;
+      if (!requiredKey || requiredKey === 'CHANGE_THIS_IN_PRODUCTION') {
+        return res.status(500).json({ error: 'Admin key not configured' });
+      }
+      if (!adminKey || adminKey !== requiredKey) {
+        return res.status(403).json({ error: 'Недостаточно прав' });
+      }
+
+      let query = 'SELECT id, username, avatar_url, diamonds_balance, level, total_wins, total_games, created_at FROM profiles';
+      const params: any[] = [];
+
+      if (search && typeof search === 'string') {
+        query += ' WHERE username ILIKE $1';
+        params.push(`%${search}%`);
+      }
+
+      query += ' ORDER BY created_at DESC LIMIT 100';
+
+      const result = await pool.query(query, params);
+
+      res.json({ data: result.rows, error: null });
+    } catch (error) {
+      console.error('Get admin users error:', error);
+      res.status(500).json({ error: 'Ошибка при получении пользователей' });
+    }
+  });
+
   app.get('/api/lobbies', async (req, res) => {
     try {
       const result = await pool.query(`

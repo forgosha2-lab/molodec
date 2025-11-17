@@ -13,6 +13,9 @@ import DurakGame from "./pages/DurakGame";
 import UnoGame from "./pages/UnoGame";
 import CoinflipGame from "./pages/CoinflipGame";
 import RollsGame from "./pages/RollsGame";
+import Deposit from "./pages/Deposit";
+import Withdrawal from "./pages/Withdrawal";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="/rolls-game" element={<RollsGame />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/deposit" element={<Deposit />} />
+          <Route path="/withdrawal" element={<Withdrawal />} />
+          <Route path="/admin" element={<AdminPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
