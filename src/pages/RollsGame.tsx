@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Gem, MessageCircle, Send, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getBalance, setBalance as saveBalance, subscribeToBalance } from "@/lib/balanceSync";
+import { useRollsWebSocket } from "@/hooks/useRollsWebSocket";
 
 interface Bet {
   id: string;
@@ -44,13 +45,21 @@ const RollsGame = () => {
   const [username, setUsername] = useState("Player");
   const [userId, setUserId] = useState("tg_123456789");
   const [betAmount, setBetAmount] = useState(100);
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const starsCanvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const {
+    status: wsStatus,
+    gameState: rollsGameState,
+    player: rollsPlayer,
+    chatMessages: rollsChatMessages,
+    joinGame,
+    placeBet: rollsPlaceBet,
+    cancelBet: rollsCancelBet,
+    sendChatMessage: rollsSendChatMessage,
+  } = useRollsWebSocket();
 
   // Load user data and balance
   useEffect(() => {
@@ -75,111 +84,20 @@ const RollsGame = () => {
     return unsubscribe;
   }, []);
 
-  // WebSocket connection
+  // Join game when connected
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = import.meta.env.VITE_WS_URL || `${window.location.hostname}:3003`;
-    const ws = new WebSocket(`${protocol}//${host}/ws-rolls`);
-
-    ws.onopen = () => {
-      console.log('Connected to Rolls WebSocket');
-      ws.send(JSON.stringify({
-        type: 'JOIN',
-        userId: userId,
-        username: username
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      handleWebSocketMessage(message);
-    };
-
-    ws.onclose = () => {
-      console.log('Disconnected from Rolls WebSocket');
-      // Attempt to reconnect without reloading
-      setTimeout(() => {
-        if (wsRef.current?.readyState === WebSocket.CLOSED) {
-          // Reconnect
-          const newWs = new WebSocket(`${protocol}//${host}/ws-rolls`);
-          newWs.onopen = () => {
-            console.log('Reconnected to Rolls WebSocket');
-            newWs.send(JSON.stringify({
-              type: 'JOIN',
-              userId: userId,
-              username: username
-            }));
-          };
-          newWs.onmessage = ws.onmessage;
-          newWs.onclose = ws.onclose;
-          newWs.onerror = ws.onerror;
-          wsRef.current = newWs;
-        }
-      }, 3000);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    wsRef.current = ws;
-
-    return () => {
-      ws.close();
-    };
-  }, [userId, username]);
-
-  function handleWebSocketMessage(message: any) {
-    switch (message.type) {
-      case 'CONNECTION_ACK':
-      case 'JOIN_ACK':
-        setMyPlayerId(message.playerId || message.connectionId);
-        setGameState(message.state);
-        break;
-      case 'STATE_SYNC':
-        setGameState(message.state);
-        break;
-      case 'ROUND_CANCELLED':
-        // Refund bet if round was cancelled
-        if (message.refundAmount && message.newBalance) {
-          setBalance(message.newBalance);
-          saveBalance(message.newBalance);
-        }
-        break;
-      case 'BALANCE_UPDATE':
-        // Update balance from server
-        if (message.newBalance !== undefined) {
-          setBalance(message.newBalance);
-          saveBalance(message.newBalance);
-        }
-        break;
-      case 'CHAT_MESSAGE':
-        // Update game state with new chat message
-        if (gameState && message.message) {
-          setGameState({
-            ...gameState,
-            chatMessages: [...gameState.chatMessages, message.message]
-          });
-        }
-        break;
-      case 'BET_PLACED':
-        // Balance already updated on server
-        const newBalance = getBalance();
-        setBalance(newBalance);
-        break;
-      case 'BET_CANCELLED':
-        // Refund balance
-        const currentBalance = getBalance();
-        const refundedBalance = currentBalance + message.refundAmount;
-        setBalance(refundedBalance);
-        saveBalance(refundedBalance);
-        break;
-      case 'ERROR':
-        console.error('Server error:', message.message);
-        alert(message.message);
-        break;
+    if (wsStatus === 'connected' && username && userId) {
+      joinGame(userId, username);
     }
-  }
+  }, [wsStatus, username, userId, joinGame]);
+
+  // Sync balance from rollsPlayer
+  useEffect(() => {
+    if (rollsPlayer?.balance !== undefined) {
+      setBalance(rollsPlayer.balance);
+      saveBalance(rollsPlayer.balance);
+    }
+  }, [rollsPlayer]);
 
   // Animated starry background
   useEffect(() => {
@@ -233,7 +151,7 @@ const RollsGame = () => {
   // Draw wheel
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !gameState) return;
+    if (!canvas || !rollsGameState) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -248,10 +166,11 @@ const RollsGame = () => {
 
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate((gameState.rotation * Math.PI) / 180);
+    const rotation = (rollsGameState as any).rotation || 0;
+    ctx.rotate((rotation * Math.PI) / 180);
     ctx.translate(-centerX, -centerY);
 
-    if (gameState.bets.length === 0) {
+    if (rollsGameState.bets.length === 0) {
       // Empty wheel
       const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
       gradient.addColorStop(0, '#60A5FA');
@@ -265,8 +184,8 @@ const RollsGame = () => {
       ctx.fill();
     } else {
       // Draw bet segments
-      gameState.bets.forEach((bet, index) => {
-        const isMyBet = bet.playerId === myPlayerId;
+      rollsGameState.bets.forEach((bet, index) => {
+        const isMyBet = bet.playerId === rollsPlayer?.id;
         
         // Create gradient for lighter, glowing colors
         const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
@@ -349,7 +268,7 @@ const RollsGame = () => {
     ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`💎${gameState.totalPot.toFixed(0)}`, centerX, centerY);
+    ctx.fillText(`💎${rollsGameState.totalPot.toFixed(0)}`, centerX, centerY);
 
     // Arrow pointer
     ctx.save();
@@ -363,47 +282,29 @@ const RollsGame = () => {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-  }, [gameState, myPlayerId]);
+  }, [rollsGameState, rollsPlayer]);
 
   function placeBet() {
-    if (!wsRef.current || betAmount > balance) {
+    if (betAmount > balance) {
       alert('Insufficient balance');
       return;
     }
 
-    wsRef.current.send(JSON.stringify({
-      type: 'PLACE_BET',
-      amount: betAmount,
-      userId: userId
-    }));
-
-    // Optimistically update balance
-    const newBalance = balance - betAmount;
-    setBalance(newBalance);
-    saveBalance(newBalance);
+    rollsPlaceBet(betAmount, 'red', userId);
   }
 
   function cancelBet() {
-    if (!wsRef.current) return;
-
-    wsRef.current.send(JSON.stringify({
-      type: 'CANCEL_BET'
-    }));
+    rollsCancelBet();
   }
 
-  function sendChatMessage() {
-    if (!wsRef.current || !chatMessage.trim()) return;
-
-    wsRef.current.send(JSON.stringify({
-      type: 'CHAT_MESSAGE',
-      message: chatMessage.trim()
-    }));
-
+  function sendChatMessageHandler() {
+    if (!chatMessage.trim()) return;
+    rollsSendChatMessage(chatMessage.trim());
     setChatMessage('');
   }
 
-  const myBet = gameState?.bets.find(bet => bet.playerId === myPlayerId);
-  const timeLeftSeconds = Math.ceil((gameState?.timeRemaining || 0) / 1000);
+  const myBet = rollsGameState?.bets.find(bet => bet.playerId === rollsPlayer?.id);
+  const timeLeftSeconds = Math.ceil(((rollsGameState as any)?.timeRemaining || 0) / 1000);
 
   return (
     <div className="min-h-screen relative overflow-hidden pb-20 md:pb-0">
@@ -452,12 +353,12 @@ const RollsGame = () => {
                 <Card className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-purple-500/30 p-4 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <div className="text-xl font-bold text-white">
-                      {gameState?.status === 'waiting' && `Time Left: ${timeLeftSeconds}s`}
-                      {gameState?.status === 'spinning' && 'SPINNING...'}
-                      {gameState?.status === 'result' && 'WINNER!'}
+                      {rollsGameState?.status === 'waiting' && `Time Left: ${timeLeftSeconds}s`}
+                      {rollsGameState?.status === 'spinning' && 'SPINNING...'}
+                      {rollsGameState?.status === 'result' && 'WINNER!'}
                     </div>
                     <div className="text-lg text-purple-300">
-                      Players: {gameState?.bets.length || 0}
+                      Players: {rollsGameState?.bets.length || 0}
                     </div>
                   </div>
                 </Card>
@@ -473,14 +374,14 @@ const RollsGame = () => {
                 </Card>
 
                 {/* Winner Display */}
-                {gameState?.status === 'result' && gameState.winnerBet && (
+                {rollsGameState?.status === 'result' && (rollsGameState as any).winnerBet && (
                   <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50 p-4 backdrop-blur-sm">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-300 mb-2">
-                        🎉 {gameState.winnerBet.playerName} WINS!
+                        🎉 {(rollsGameState as any).winnerBet.playerName} WINS!
                       </div>
                       <div className="text-xl text-white">
-                        💎 {gameState.winnerBet.amount.toFixed(0)} (95% of pot)
+                        💎 {(rollsGameState as any).winnerBet.amount.toFixed(0)} (95% of pot)
                       </div>
                       <div className="text-sm text-gray-300 mt-1">
                         5% house fee applied
@@ -501,7 +402,7 @@ const RollsGame = () => {
                         <div className="text-2xl font-bold text-white">💎 {myBet.amount}</div>
                         <div className="text-sm text-green-200">Win chance: {myBet.percentage.toFixed(1)}%</div>
                       </div>
-                      {gameState?.status === 'waiting' && (
+                      {rollsGameState?.status === 'waiting' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -565,7 +466,7 @@ const RollsGame = () => {
 
                     <Button
                       onClick={placeBet}
-                      disabled={gameState?.status !== 'waiting' || betAmount > balance}
+                      disabled={rollsGameState?.status !== 'waiting' || betAmount > balance}
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg shadow-purple-500/50"
                     >
                       {myBet ? 'ADD MORE' : 'PLACE BET'}
@@ -575,14 +476,14 @@ const RollsGame = () => {
 
                 {/* All Bets */}
                 <Card className="bg-gradient-to-br from-slate-900/80 to-blue-900/80 border-blue-500/30 p-4 backdrop-blur-sm">
-                  <div className="text-sm font-semibold text-blue-300 mb-3">ALL BETS ({gameState?.bets.length || 0})</div>
+                  <div className="text-sm font-semibold text-blue-300 mb-3">ALL BETS ({rollsGameState?.bets.length || 0})</div>
                   <ScrollArea className="h-64">
                     <div className="space-y-2">
-                      {gameState?.bets.map((bet) => (
+                      {rollsGameState?.bets.map((bet) => (
                         <div
                           key={bet.id}
                           className={`p-3 rounded-lg border ${
-                            bet.playerId === myPlayerId
+                            bet.playerId === rollsPlayer?.id
                               ? 'bg-green-500/20 border-green-500/50'
                               : 'bg-slate-800/50 border-slate-700/50'
                           }`}
@@ -629,10 +530,10 @@ const RollsGame = () => {
               </div>
               <ScrollArea className="flex-1 p-3">
                 <div className="space-y-2">
-                  {gameState?.chatMessages.map((msg) => (
+                  {rollsChatMessages.map((msg) => (
                     <div key={msg.id} className="text-sm">
                       <span className="font-semibold text-purple-300">{msg.playerName}: </span>
-                      <span className="text-white">{msg.message}</span>
+                      <span className="text-white">{msg.text}</span>
                     </div>
                   ))}
                 </div>
@@ -642,12 +543,12 @@ const RollsGame = () => {
                   <Input
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessageHandler()}
                     placeholder="Type message..."
                     className="bg-slate-800 border-purple-500/30 text-white"
                   />
                   <Button
-                    onClick={sendChatMessage}
+                    onClick={sendChatMessageHandler}
                     size="icon"
                     className="bg-purple-600 hover:bg-purple-700"
                   >

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { WSMessage, WSClientMessage, WSServerMessage, GameRoom } from '@/shared/uno-schema';
+import { io, Socket } from 'socket.io-client';
+import { WSClientMessage, WSServerMessage, GameRoom } from '@/shared/uno-schema';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -9,94 +10,97 @@ export function useUnoWebSocket() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const ws = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
+    if (socketRef.current?.connected) {
       return;
     }
 
     setStatus('connecting');
     setError(null);
 
-    const isDev = import.meta.env.DEV;
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = isDev 
-      ? `${protocol}//localhost:3003/ws-uno`
-      : `${protocol}//${window.location.hostname}:${window.location.port || (protocol === 'wss:' ? '443' : '80')}/ws-uno`;
+    const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+    const socketUrl = `${protocol}//${window.location.host}`;
     
     try {
-      ws.current = new WebSocket(wsUrl);
+      const socket = io(socketUrl, {
+        path: '/ws-uno',
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+      });
 
-      ws.current.onopen = () => {
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        console.log('UNO WebSocket connected');
         setStatus('connected');
         setError(null);
-      };
+      });
 
-      ws.current.onmessage = (event) => {
-        try {
-          const message: WSServerMessage = JSON.parse(event.data);
-          
-          switch (message.type) {
-            case 'room_created':
-            case 'room_joined':
-              setRoom(message.room);
-              setPlayerId(message.playerId);
-              break;
-              
-            case 'game_state_update':
-            case 'player_joined':
-              setRoom(message.room);
-              break;
-              
-            case 'player_left':
-              setRoom(message.room);
-              break;
-              
-            case 'game_over':
-              setRoom(message.room);
-              break;
-              
-            case 'error':
-              setError(message.message);
-              break;
-          }
-        } catch (err) {
-          console.error('Failed to parse message:', err);
-        }
-      };
+      socket.on('room_created', (data: any) => {
+        setRoom(data.room);
+        setPlayerId(data.playerId);
+      });
 
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setStatus('error');
-        setError('Ошибка подключения к серверу');
-      };
+      socket.on('room_joined', (data: any) => {
+        setRoom(data.room);
+        setPlayerId(data.playerId);
+      });
 
-      ws.current.onclose = () => {
+      socket.on('game_state_update', (data: any) => {
+        setRoom(data.room);
+      });
+
+      socket.on('player_joined', (data: any) => {
+        setRoom(data.room);
+      });
+
+      socket.on('player_left', (data: any) => {
+        setRoom(data.room);
+      });
+
+      socket.on('game_over', (data: any) => {
+        setRoom(data.room);
+      });
+
+      socket.on('error', (data: any) => {
+        setError(data.message);
+        console.error('UNO WebSocket error:', data.message);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('UNO WebSocket disconnected:', reason);
         setStatus('disconnected');
         
-        reconnectTimeout.current = setTimeout(() => {
-          if (playerId && room) {
-            connect();
-          }
-        }, 3000);
-      };
+        if (reason === 'io server disconnect') {
+          socket.connect();
+        }
+      });
+
+      socket.on('connect_error', (err) => {
+        console.error('UNO WebSocket connection error:', err);
+        setStatus('error');
+        setError('Ошибка подключения к серверу');
+      });
     } catch (err) {
-      console.error('Failed to create WebSocket:', err);
+      console.error('Failed to create socket.io connection:', err);
       setStatus('error');
       setError('Не удалось подключиться к серверу');
     }
-  }, [playerId, room]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeout.current) {
       clearTimeout(reconnectTimeout.current);
     }
     
-    if (ws.current) {
-      ws.current.close();
-      ws.current = null;
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
     
     setStatus('disconnected');
@@ -105,10 +109,11 @@ export function useUnoWebSocket() {
   }, []);
 
   const sendMessage = useCallback((message: WSClientMessage) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify(message));
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(message.type, message);
     } else {
       setError('Нет подключения к серверу');
+      console.warn('Cannot send message - socket not connected');
     }
   }, []);
 
@@ -119,11 +124,11 @@ export function useUnoWebSocket() {
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
       }
-      if (ws.current) {
-        ws.current.close();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
     };
-  }, []);
+  }, [connect]);
 
   return {
     status,
@@ -135,4 +140,3 @@ export function useUnoWebSocket() {
     disconnect,
   };
 }
-

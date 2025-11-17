@@ -1,0 +1,346 @@
+s://f9d8c63d-857f-4092-8ffc-5ac6e8a4a159-00-c38johye8twz.pike.replit.dev/' failed: 
+ping @ f9d8c63d-857f-4092-8…v/@vite/client:1035
+waitForSuccessfulPing @ f9d8c63d-857f-4092-8…v/@vite/client:1054
+handleMessage @ f9d8c63d-857f-4092-8…ev/@vite/client:968
+injected.js:27 Database initialization skipped - running in browser environment
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_header_color {color_key: 'bg_color'}
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_bottom_bar_color {color: '#ffffff'}
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_theme 
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_viewport 
+injected.js:27 [Telegram.WebView] > postEvent web_app_ready 
+injected.js:27 [Telegram.WebView] > postEvent web_app_expand 
+b1c3279b495d2e18.js:2  POST https://stats.g.doubleclick.net/j/collect?t=dc&aip=1&_r=3&v=1&_v=j102&tid=UA-25629695-1&cid=1515323761.1761735483&jid=972121683&gjid=263219195&_gid=729144277.1763295970&_u=SCCAgEAjQAAAAGgCIAD~&z=1410931831 net::ERR_TIMED_OUT
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ bf40fb4a7b293a94.js:2
+a @ bf40fb4a7b293a94.js:2
+wd @ analytics.js:46
+pe @ analytics.js:44
+(anonymous) @ analytics.js:83
+(anonymous) @ analytics.js:47
+(anonymous) @ analytics.js:87
+(anonymous) @ analytics.js:68
+(anonymous) @ analytics.js:102
+(anonymous) @ analytics.js:101
+N @ analytics.js:103
+(anonymous) @ index.js:360
+(anonymous) @ protos.js:372
+(anonymous) @ protos.js:178
+(anonymous) @ index.ts:270
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ ajs-destination.bundle.8e6b895db75187c55313.js:1
+(anonymous) @ index.ts:286
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ ajs-destination.bundle.8e6b895db75187c55313.js:1
+(anonymous) @ delivery.js:28
+(anonymous) @ delivery.js:11
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ delivery.js:4
+o @ delivery.js:27
+(anonymous) @ event-queue.js:325
+(anonymous) @ event-queue.js:323
+o @ b1c3279b495d2e18.js:2
+setTimeout
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ event-queue.js:321
+(anonymous) @ event-queue.js:320
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:273
+(anonymous) @ event-queue.js:181
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:169
+(anonymous) @ event-queue.js:135
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:128
+(anonymous) @ dispatch.js:25
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+p @ dispatch.js:18
+(anonymous) @ index.ts:460
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ index.ts:454
+(anonymous) @ index.ts:253
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ index.ts:241
+C @ bf40fb4a7b293a94.js:2
+(anonymous) @ d63aa083b531f6cf.js:2
+push.e.864.s.emit @ daf57a1c772bbed1.js:2
+(anonymous) @ d3ebe8d1cbd1d969.js:2
+(anonymous) @ d3ebe8d1cbd1d969.js:2
+handleCommand @ d3ebe8d1cbd1d969.js:2
+push.n.Client.onSocketMessage @ d3ebe8d1cbd1d969.js:2
+injected.js:27 [vite] server connection lost. Polling for restart...
+injected.js:27 Database initialization skipped - running in browser environment
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_header_color {color_key: 'bg_color'}
+injected.js:27 [Telegram.WebView] > postEvent web_app_set_bottom_bar_color {color: '#ffffff'}
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_theme 
+injected.js:27 [Telegram.WebView] > postEvent web_app_request_viewport 
+injected.js:27 [Telegram.WebView] > postEvent web_app_ready 
+injected.js:27 [Telegram.WebView] > postEvent web_app_expand 
+b1c3279b495d2e18.js:2  POST https://stats.g.doubleclick.net/j/collect?t=dc&aip=1&_r=3&v=1&_v=j102&tid=UA-25629695-1&cid=1515323761.1761735483&jid=1975097383&gjid=806212217&_gid=729144277.1763295970&_u=SCCAgEAjQAAAAGgCIAD~&z=463567050 net::ERR_CONNECTION_RESET
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ bf40fb4a7b293a94.js:2
+a @ bf40fb4a7b293a94.js:2
+wd @ analytics.js:46
+pe @ analytics.js:44
+(anonymous) @ analytics.js:83
+(anonymous) @ analytics.js:47
+(anonymous) @ analytics.js:87
+(anonymous) @ analytics.js:68
+(anonymous) @ analytics.js:102
+(anonymous) @ analytics.js:101
+N @ analytics.js:103
+(anonymous) @ index.js:360
+(anonymous) @ protos.js:372
+(anonymous) @ protos.js:178
+(anonymous) @ index.ts:270
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ ajs-destination.bundle.8e6b895db75187c55313.js:1
+(anonymous) @ index.ts:286
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ ajs-destination.bundle.8e6b895db75187c55313.js:1
+(anonymous) @ delivery.js:28
+(anonymous) @ delivery.js:11
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ delivery.js:4
+o @ delivery.js:27
+(anonymous) @ event-queue.js:325
+(anonymous) @ event-queue.js:323
+o @ b1c3279b495d2e18.js:2
+setTimeout
+(anonymous) @ b1c3279b495d2e18.js:2
+(anonymous) @ event-queue.js:321
+(anonymous) @ event-queue.js:320
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:273
+(anonymous) @ event-queue.js:181
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+s @ tslib.es6.js:73
+Promise.then
+a @ tslib.es6.js:76
+(anonymous) @ tslib.es6.js:76
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:169
+(anonymous) @ event-queue.js:135
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ event-queue.js:128
+(anonymous) @ dispatch.js:25
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+p @ dispatch.js:18
+(anonymous) @ index.ts:460
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ index.ts:454
+(anonymous) @ index.ts:253
+(anonymous) @ tslib.es6.js:103
+(anonymous) @ tslib.es6.js:108
+(anonymous) @ tslib.es6.js:80
+u @ tslib.es6.js:72
+(anonymous) @ index.ts:241
+C @ bf40fb4a7b293a94.js:2
+(anonymous) @ d63aa083b531f6cf.js:2
+push.e.864.s.emit @ daf57a1c772bbed1.js:2
+(anonymous) @ d3ebe8d1cbd1d969.js:2
+(anonymous) @ d3ebe8d1cbd1d969.js:2
+handleCommand @ d3ebe8d1cbd1d969.js:2
+push.n.Client.onSocketMessage @ d3ebe8d1cbd1d969.js:2
+useRollsWebSocket.ts:72 WebSocket connection to 'ws://localhost:3003/ws-rolls/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=88a78d14:1059
+doOpen @ socket__io-client.js?v=88a78d14:986
+open @ socket__io-client.js?v=88a78d14:503
+_open @ socket__io-client.js?v=88a78d14:1328
+_SocketWithoutUpgrade @ socket__io-client.js?v=88a78d14:1289
+SocketWithUpgrade @ socket__io-client.js?v=88a78d14:1633
+Socket @ socket__io-client.js?v=88a78d14:1759
+open @ socket__io-client.js?v=88a78d14:3125
+Manager @ socket__io-client.js?v=88a78d14:3057
+lookup2 @ socket__io-client.js?v=88a78d14:3393
+(anonymous) @ useRollsWebSocket.ts:72
+(anonymous) @ useRollsWebSocket.ts:201
+react_stack_bottom_frame @ react-dom_client.js?v=88a78d14:18567
+runWithFiberInDEV @ react-dom_client.js?v=88a78d14:997
+commitHookEffectListMount @ react-dom_client.js?v=88a78d14:9411
+commitHookPassiveMountEffects @ react-dom_client.js?v=88a78d14:9465
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11040
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=88a78d14:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=88a78d14:11066
+flushPassiveEffects @ react-dom_client.js?v=88a78d14:13150
+flushPendingEffects @ react-dom_client.js?v=88a78d14:13088
+performSyncWorkOnRoot @ react-dom_client.js?v=88a78d14:13514
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=88a78d14:13414
+flushSpawnedWork @ react-dom_client.js?v=88a78d14:13067
+commitRoot @ react-dom_client.js?v=88a78d14:12804
+commitRootWhenReady @ react-dom_client.js?v=88a78d14:12016
+performWorkOnRoot @ react-dom_client.js?v=88a78d14:11950
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=88a78d14:13505
+performWorkUntilDeadline @ react-dom_client.js?v=88a78d14:36
+injected.js:27 Rolls WebSocket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=88a78d14:495:33)
+    at ws.onerror (socket__io-client.js?v=88a78d14:1010:35)
+(anonymous) @ injected.js:27
+(anonymous) @ useRollsWebSocket.ts:142
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onerror @ socket__io-client.js?v=88a78d14:2560
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:3137
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+_onError @ socket__io-client.js?v=88a78d14:1597
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:495
+ws.onerror @ socket__io-client.js?v=88a78d14:1010
+socket__io-client.js?v=88a78d14:1059 WebSocket connection to 'ws://localhost:3003/ws-rolls/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=88a78d14:1059
+doOpen @ socket__io-client.js?v=88a78d14:986
+open @ socket__io-client.js?v=88a78d14:503
+_open @ socket__io-client.js?v=88a78d14:1328
+_SocketWithoutUpgrade @ socket__io-client.js?v=88a78d14:1289
+SocketWithUpgrade @ socket__io-client.js?v=88a78d14:1633
+Socket @ socket__io-client.js?v=88a78d14:1759
+open @ socket__io-client.js?v=88a78d14:3125
+(anonymous) @ socket__io-client.js?v=88a78d14:3343
+injected.js:27 Rolls WebSocket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=88a78d14:495:33)
+    at ws.onerror (socket__io-client.js?v=88a78d14:1010:35)
+(anonymous) @ injected.js:27
+(anonymous) @ useRollsWebSocket.ts:142
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onerror @ socket__io-client.js?v=88a78d14:2560
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:3137
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+_onError @ socket__io-client.js?v=88a78d14:1597
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:495
+ws.onerror @ socket__io-client.js?v=88a78d14:1010
+socket__io-client.js?v=88a78d14:1059 WebSocket connection to 'ws://localhost:3003/ws-rolls/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=88a78d14:1059
+doOpen @ socket__io-client.js?v=88a78d14:986
+open @ socket__io-client.js?v=88a78d14:503
+_open @ socket__io-client.js?v=88a78d14:1328
+_SocketWithoutUpgrade @ socket__io-client.js?v=88a78d14:1289
+SocketWithUpgrade @ socket__io-client.js?v=88a78d14:1633
+Socket @ socket__io-client.js?v=88a78d14:1759
+open @ socket__io-client.js?v=88a78d14:3125
+(anonymous) @ socket__io-client.js?v=88a78d14:3343
+injected.js:27 Rolls WebSocket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=88a78d14:495:33)
+    at ws.onerror (socket__io-client.js?v=88a78d14:1010:35)
+(anonymous) @ injected.js:27
+(anonymous) @ useRollsWebSocket.ts:142
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onerror @ socket__io-client.js?v=88a78d14:2560
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:3137
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+_onError @ socket__io-client.js?v=88a78d14:1597
+Emitter.emit @ socket__io-client.js?v=88a78d14:354
+onError @ socket__io-client.js?v=88a78d14:495
+ws.onerror @ socket__io-client.js?v=88a78d14:1010
+socket__io-client.js?v=88a78d14:1059 WebSocket connection to 'ws://localhost:3003/ws-rolls/?EIO=4&transport=websocket' failed: 
+createSocket @ socket__io-client.js?v=88a78d14:1059
+doOpen @ socket__io-client.js?v=88a78d14:986
+open @ socket__io-client.js?v=88a78d14:503
+_open @ socket__io-client.js?v=88a78d14:1328
+_SocketWithoutUpgrade @ socket__io-client.js?v=88a78d14:1289
+SocketWithUpgrade @ socket__io-client.js?v=88a78d14:1633
+Socket @ socket__io-client.js?v=88a78d14:1759
+open @ socket__io-client.js?v=88a78d14:3125
+(anonymous) @ socket__io-client.js?v=88a78d14:3343
+injected.js:27 Rolls WebSocket connection error: TransportError: websocket error
+    at WS.onError (socket__io-client.js?v=88a78d14:495:33)
+    at ws.onerror (socket__io-client.js?v=88a78d14:1010:35)
