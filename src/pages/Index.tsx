@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -16,6 +16,7 @@ import { auth } from "@/integrations/database";
 import { telegram } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
 import { getBalance, fetchBalanceFromServer, subscribeToBalance } from "@/lib/balanceSync";
+import useEmblaCarousel from "embla-carousel-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,6 +25,11 @@ const Index = () => {
   const [balance, setBalance] = useState(100);
   const [username, setUsername] = useState("Игрок");
   const [activeTab, setActiveTab] = useState("home");
+  const [emblaRef] = useEmblaCarousel({ 
+    align: 'start', 
+    dragFree: true,
+    containScroll: 'trimSnaps'
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -174,7 +180,44 @@ const Index = () => {
               </h2>
             </div>
 
-            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+            <div className="md:hidden overflow-hidden -mx-4 px-4" ref={emblaRef}>
+              <div className="flex gap-3 pb-4">
+                <div className="flex-[0_0_75%] min-w-0">
+                  <GameCard
+                    title="UNO"
+                    image={unoImg}
+                    gradient="bg-gradient-to-br from-red-600 via-blue-600 to-green-600"
+                    onClick={handleUnoClick}
+                  />
+                </div>
+                <div className="flex-[0_0_75%] min-w-0">
+                  <GameCard
+                    title="Дурак"
+                    image={durakImg}
+                    gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
+                    onClick={handleDurakClick}
+                  />
+                </div>
+                <div className="flex-[0_0_75%] min-w-0">
+                  <GameCard
+                    title="Coinflip"
+                    image={coinflipImg}
+                    gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
+                    onClick={() => navigate("/coinflip-game")}
+                  />
+                </div>
+                <div className="flex-[0_0_75%] min-w-0">
+                  <GameCard
+                    title="Rolls"
+                    image={rollsImg}
+                    gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
+                    onClick={() => navigate("/rolls-game")}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden md:block overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
               <div className="flex gap-3 md:gap-4 min-w-max">
                 <GameCard
                   title="UNO"
