@@ -6,6 +6,59 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 
 ## Recent Changes
 
+### November 17, 2025 - Major Feature Additions and Enhancements
+
+**Rolls Game Logic Rewrite - COMPLETED**: Implemented new betting flow and countdown system:
+- ✅ Rewrote Rolls server logic: First player bets → waiting continues → second player bets → 25-second countdown begins
+- ✅ Added countdown state to client WebSocket hook with optional timer display
+- ✅ Fixed balance display showing 1000 instead of real database balance
+- ✅ Implemented 5% house fee tracking for admin panel (recorded after each bet)
+- ✅ Added balance refund system when countdown expires without enough players
+
+**Mobile Responsiveness - COMPLETED**: Improved mobile UI across the platform:
+- ✅ Optimized hero banner scaling for mobile devices (responsive height and text sizing)
+- ✅ Adjusted game card spacing on mobile to match desktop layout
+- ✅ Enhanced touch interaction areas for better mobile UX
+
+**Deposit & Withdrawal System - COMPLETED**: Created payment pages with Crypto Bot integration:
+- ✅ Built Deposit page (/deposit) with Crypto Bot payment option
+- ✅ Built Withdrawal page (/withdrawal) with Crypto Bot integration
+- ✅ Connected Header "Пополнить/Вывести" button to navigate to deposit page
+- ✅ Added routing for both pages in App.tsx
+
+**Leaderboard Enhancement - COMPLETED**: Switched from mock data to real user data:
+- ✅ Created /api/leaderboard/top endpoint to fetch top players by diamonds_balance
+- ✅ Displays real user avatars, usernames, and balances from database
+- ✅ Integrated into main page with automatic data loading
+
+**Admin Panel - COMPLETED**: Built comprehensive admin dashboard with earnings tracking:
+- ✅ Created AdminPanel page (/admin) with secure ADMIN_KEY authentication
+- ✅ Displays total earnings across all games
+- ✅ Shows breakdown by game type (Rolls, Coinflip)
+- ✅ Added user search and management features
+- ✅ Created /api/admin/earnings and /api/admin/users endpoints
+- ✅ Added game_earnings table to database schema
+- ✅ Implemented 5% commission tracking for both Rolls and Coinflip games
+- ✅ Security: Removed hardcoded admin key, requires proper ADMIN_KEY environment variable
+
+**Database Fixes - COMPLETED**: Resolved profile and lobby access issues:
+- ✅ Ran `drizzle-kit push` to initialize all database tables
+- ✅ Fixed "relation does not exist" errors for profiles and other tables
+- ✅ Verified all API endpoints working correctly (/api/profile, /api/auth/signup, etc.)
+- ✅ Profile and Durak lobbies now accessible without errors
+
+**Coinflip Earnings Tracking - COMPLETED**: Added commission tracking for admin panel:
+- ✅ Created /api/game-earnings endpoint to record game commissions
+- ✅ Coinflip now records 5% of each bet to game_earnings table
+- ✅ Earnings recorded only after game completion (not on bet placement)
+- ✅ Admin panel displays accurate Coinflip revenue
+
+**Security Enhancements - COMPLETED**:
+- ✅ Removed hardcoded admin bypass key from authentication
+- ✅ Admin endpoints now require valid ADMIN_KEY environment variable
+- ✅ Server returns 500 error if ADMIN_KEY not configured or equals placeholder
+- ✅ Prevents unauthorized access to earnings and user data
+
 ### November 17, 2025 - Bug Fixes and UI Updates
 
 **Bug Fixes and UI Improvements - COMPLETED**: Fixed critical issues in Rolls game and updated Coinflip styling:
