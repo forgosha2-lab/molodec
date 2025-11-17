@@ -6,6 +6,17 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 
 ## Recent Changes
 
+### November 17, 2025 - Bug Fixes and UI Updates
+
+**Bug Fixes and UI Improvements - COMPLETED**: Fixed critical issues in Rolls game and updated Coinflip styling:
+- ✅ Fixed Rolls game live chat - corrected property reference from `msg.text` to `msg.message`
+- ✅ Changed Coinflip background from green gradient to gray gradient (from-gray-800 via-gray-700 to-gray-900)
+- ✅ Updated Coinflip header colors to match gray theme (border-gray-500/30 bg-gray-900/80)
+- ✅ Pushed database schema using drizzle-kit to fix API 500 errors on /api/profile and /api/auth/signup
+- ✅ Verified balance synchronization works correctly via balanceSync.ts across all games
+- ✅ All API endpoints tested and working properly
+- ✅ Rolls game betting functionality verified working
+
 ### November 17, 2025 - WebSocket Migration to Socket.IO
 
 **Migration to Socket.IO for Rolls and UNO - COMPLETED**: Successfully migrated Rolls and UNO games from ws library to socket.io for better Bun runtime compatibility:
