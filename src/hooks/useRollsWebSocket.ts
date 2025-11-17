@@ -217,7 +217,7 @@ export function useRollsWebSocket() {
         socketRef.current.disconnect();
       }
     };
-  }, [connect]);
+  }, []);
 
   return {
     status,
