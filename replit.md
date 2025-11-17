@@ -4,7 +4,24 @@
 
 PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) and mini casino-style games (Crash, Coinflip, Rolls). The application is built as a full-stack web application with a React/TypeScript frontend and Node.js/Express backend, optimized for Replit deployment with Telegram Mini App integration.
 
-## Recent Changes (November 15, 2025)
+## Recent Changes
+
+### November 17, 2025 - WebSocket Migration to Socket.IO
+
+**Migration to Socket.IO for Rolls and UNO - COMPLETED**: Successfully migrated Rolls and UNO games from ws library to socket.io for better Bun runtime compatibility:
+- ✅ Migrated server/rolls-websocket.ts to socket.io with path /ws-rolls
+- ✅ Migrated server/websocket-uno.js to socket.io with path /ws-uno
+- ✅ Created src/hooks/useRollsWebSocket.ts client hook using socket.io-client
+- ✅ Updated src/hooks/useUnoWebSocket.ts client hook to socket.io-client
+- ✅ Fixed all client-server contract mismatches (event names, payload structures)
+- ✅ Implemented functional state updates for balance handlers to fix closure issues
+- ✅ Aligned chat message payloads ({ message } instead of { text })
+- ✅ Removed ws dependency from package.json
+- ✅ Crash game intentionally kept on ws library as per user preference
+- ✅ Updated Durak page background to gray gradient
+- ✅ All games tested and verified working without blocking defects
+
+### November 15, 2025 - PostgreSQL Database Migration
 
 **Migration to Neon PostgreSQL - COMPLETED**: Successfully migrated project from Supabase to Neon PostgreSQL with Drizzle ORM:
 - ✅ Migrated from Supabase to Neon PostgreSQL serverless database
@@ -36,7 +53,7 @@ Preferred communication style: Simple, everyday language.
 **State Management**:
 - TanStack Query (React Query) for server state and caching
 - Local React state with hooks for UI interactions
-- WebSocket connections managed through custom hooks (useWebSocket, useUnoWebSocket)
+- WebSocket connections managed through custom hooks (useRollsWebSocket for Rolls, useUnoWebSocket for UNO, useWebSocket for Crash)
 
 **Routing**: React Router v6 with client-side routing for SPA navigation
 
@@ -49,9 +66,10 @@ Preferred communication style: Simple, everyday language.
 **API Design**: RESTful endpoints for game state management, user authentication, and profile data
 
 **Real-time Communication**: 
-- WebSocket servers for multi-player game synchronization
-- Separate WebSocket paths for different games (/ws-uno, /ws for crash/coinflip/rolls)
+- Socket.IO for Rolls (/ws-rolls) and UNO (/ws-uno) games with Bun-compatible implementation
+- Native WebSocket (ws library) for Crash game (/ws) - intentionally kept separate
 - Custom game logic modules (uno-game-logic.js, durak-server.js, crash-websocket.js)
+- Client hooks: useRollsWebSocket, useUnoWebSocket (socket.io-client), useWebSocket (native WebSocket)
 
 **Data Layer**:
 - Drizzle ORM with PostgreSQL (Neon) for type-safe database operations
@@ -114,8 +132,10 @@ Preferred communication style: Simple, everyday language.
 ### External Dependencies
 
 **Real-time Gaming**:
-- WebSocket protocol for bidirectional game state synchronization
+- Socket.IO v4 for Rolls and UNO games (better Bun runtime compatibility)
+- Native WebSocket (ws library) for Crash game only
 - Custom WebSocket servers embedded in Express app via http.createServer
+- Hybrid approach allows per-game protocol optimization
 
 **Telegram Platform**:
 - @twa-dev/sdk for Telegram Mini App integration
