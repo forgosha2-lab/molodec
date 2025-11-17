@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Home, Gamepad2, Trophy, Gift, Menu, Gem, User } from "lucide-react";
+import { Home, Gem, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -66,14 +66,6 @@ export const Header = ({ onMenuClick, balance = 0, username = "Игрок", onDe
             >
               <Home className="h-4 w-4" />
               Главная
-            </Button>
-            <Button
-              variant={getActiveTab() === "tournaments" ? "secondary" : "ghost"}
-              className="gap-2"
-              onClick={() => handleNavigation("/tournaments", "tournaments")}
-            >
-              <Trophy className="h-4 w-4" />
-              Соревнования
             </Button>
           </nav>
         </div>

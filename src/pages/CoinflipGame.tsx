@@ -357,20 +357,6 @@ const CoinflipGame = () => {
                   )}
                 </div>
 
-                {gameStatus === 'result' && (
-                  <div className={`p-3 md:p-4 rounded-lg text-center border-2 ${
-                    isWin
-                      ? 'bg-green-500/20 border-green-500/50'
-                      : 'bg-red-500/20 border-red-500/50'
-                  }`}>
-                    <div className={`text-xs md:text-sm font-medium ${isWin ? 'text-green-300' : 'text-red-300'}`}>
-                      {isWin ? 'Выигрыш' : 'Проигрыш'}
-                    </div>
-                    <div className={`text-lg md:text-2xl font-bold ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-                      {isWin ? `+💎 ${(betAmount * 1.95).toFixed(0)}` : `-💎 ${betAmount}`}
-                    </div>
-                  </div>
-                )}
               </div>
             </Card>
           </div>

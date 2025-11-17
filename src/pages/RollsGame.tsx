@@ -3,77 +3,237 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trophy, Gem } from "lucide-react";
+import { ArrowLeft, Gem, MessageCircle, Send, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getBalance, setBalance as saveBalance, subscribeToBalance } from "@/lib/balanceSync";
 
 interface Bet {
   id: string;
+  playerId: string;
+  playerName: string;
   amount: number;
   color: string;
   percentage: number;
   startAngle: number;
   endAngle: number;
+  avatar_url?: string;
+}
+
+interface GameState {
+  status: 'waiting' | 'spinning' | 'result';
+  bets: Bet[];
+  totalPot: number;
+  timeRemaining: number;
+  winnerBet: Bet | null;
+  rotation: number;
+  roundId: string;
+  chatMessages: ChatMessage[];
+}
+
+interface ChatMessage {
+  id: string;
+  playerId: string;
   playerName: string;
+  message: string;
+  timestamp: number;
 }
 
 const RollsGame = () => {
   const navigate = useNavigate();
-  const [balance, setBalance] = useState(1000);
+  const [balance, setBalance] = useState(100);
   const [username, setUsername] = useState("Player");
+  const [userId, setUserId] = useState("tg_123456789");
   const [betAmount, setBetAmount] = useState(100);
-  const [gameStatus, setGameStatus] = useState<'waiting' | 'spinning' | 'result'>('waiting');
-  const [bets, setBets] = useState<Bet[]>([
-    {
-      id: '1',
-      amount: 500,
-      color: '#4169E1',
-      percentage: 50,
-      startAngle: 0,
-      endAngle: 180,
-      playerName: 'Player1',
-    },
-    {
-      id: '2',
-      amount: 500,
-      color: '#8B5CF6',
-      percentage: 50,
-      startAngle: 180,
-      endAngle: 360,
-      playerName: 'Player2',
-    },
-  ]);
-  const [totalPot, setTotalPot] = useState(1000);
-  const [rotation, setRotation] = useState(0);
-  const [winnerBet, setWinnerBet] = useState<Bet | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const starsCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Загрузить баланс и подписаться на изменения
+  // Load user data and balance
   useEffect(() => {
     const initialBalance = getBalance();
     setBalance(initialBalance);
-    
+
     const user = localStorage.getItem('user');
     if (user) {
       try {
         const userData = JSON.parse(user);
         setUsername(userData.username || 'Player');
+        setUserId(userData.id || 'tg_123456789');
       } catch (e) {
         console.error('Failed to parse user data:', e);
       }
     }
-    
+
     const unsubscribe = subscribeToBalance((newBalance) => {
       setBalance(newBalance);
     });
-    
+
     return unsubscribe;
   }, []);
 
-  // Рисовать барабан
+  // WebSocket connection
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = import.meta.env.VITE_WS_URL || `${window.location.hostname}:3003`;
+    const ws = new WebSocket(`${protocol}//${host}/ws-rolls`);
+
+    ws.onopen = () => {
+      console.log('Connected to Rolls WebSocket');
+      ws.send(JSON.stringify({
+        type: 'JOIN',
+        userId: userId,
+        username: username
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      handleWebSocketMessage(message);
+    };
+
+    ws.onclose = () => {
+      console.log('Disconnected from Rolls WebSocket');
+      // Attempt to reconnect without reloading
+      setTimeout(() => {
+        if (wsRef.current?.readyState === WebSocket.CLOSED) {
+          // Reconnect
+          const newWs = new WebSocket(`${protocol}//${host}/ws-rolls`);
+          newWs.onopen = () => {
+            console.log('Reconnected to Rolls WebSocket');
+            newWs.send(JSON.stringify({
+              type: 'JOIN',
+              userId: userId,
+              username: username
+            }));
+          };
+          newWs.onmessage = ws.onmessage;
+          newWs.onclose = ws.onclose;
+          newWs.onerror = ws.onerror;
+          wsRef.current = newWs;
+        }
+      }, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    wsRef.current = ws;
+
+    return () => {
+      ws.close();
+    };
+  }, [userId, username]);
+
+  function handleWebSocketMessage(message: any) {
+    switch (message.type) {
+      case 'CONNECTION_ACK':
+      case 'JOIN_ACK':
+        setMyPlayerId(message.playerId || message.connectionId);
+        setGameState(message.state);
+        break;
+      case 'STATE_SYNC':
+        setGameState(message.state);
+        break;
+      case 'ROUND_CANCELLED':
+        // Refund bet if round was cancelled
+        if (message.refundAmount && message.newBalance) {
+          setBalance(message.newBalance);
+          saveBalance(message.newBalance);
+        }
+        break;
+      case 'BALANCE_UPDATE':
+        // Update balance from server
+        if (message.newBalance !== undefined) {
+          setBalance(message.newBalance);
+          saveBalance(message.newBalance);
+        }
+        break;
+      case 'CHAT_MESSAGE':
+        // Update game state with new chat message
+        if (gameState && message.message) {
+          setGameState({
+            ...gameState,
+            chatMessages: [...gameState.chatMessages, message.message]
+          });
+        }
+        break;
+      case 'BET_PLACED':
+        // Balance already updated on server
+        const newBalance = getBalance();
+        setBalance(newBalance);
+        break;
+      case 'BET_CANCELLED':
+        // Refund balance
+        const currentBalance = getBalance();
+        const refundedBalance = currentBalance + message.refundAmount;
+        setBalance(refundedBalance);
+        saveBalance(refundedBalance);
+        break;
+      case 'ERROR':
+        console.error('Server error:', message.message);
+        alert(message.message);
+        break;
+    }
+  }
+
+  // Animated starry background
+  useEffect(() => {
+    const canvas = starsCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const stars: { x: number; y: number; radius: number; opacity: number; speed: number }[] = [];
+    
+    for (let i = 0; i < 100; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.5 + 0.5,
+        opacity: Math.random(),
+        speed: Math.random() * 0.002 + 0.001
+      });
+    }
+
+    let animationFrame: number;
+    function animate() {
+      ctx.fillStyle = 'rgba(10, 10, 30, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      stars.forEach(star => {
+        star.opacity += star.speed;
+        if (star.opacity > 1) star.opacity = 0;
+        if (star.opacity < 0) star.opacity = 1;
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(star.opacity * Math.PI))})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
+  // Draw wheel
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !gameState) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -82,32 +242,42 @@ const RollsGame = () => {
     const height = canvas.height;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = Math.min(width, height) / 2 - 30;
+    const radius = Math.min(width, height) / 2 - 40;
 
     ctx.clearRect(0, 0, width, height);
 
-    // Рисовать звезды
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    for (let i = 0; i < 50; i++) {
-      const x = (i * 73) % width;
-      const y = (i * 97) % height;
-      const size = Math.sin(i) * 1.5 + 1;
-      ctx.fillRect(x, y, size, size);
-    }
-
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.rotate((gameState.rotation * Math.PI) / 180);
     ctx.translate(-centerX, -centerY);
 
-    if (bets.length === 0) {
-      ctx.fillStyle = '#4169E1';
+    if (gameState.bets.length === 0) {
+      // Empty wheel
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+      gradient.addColorStop(0, '#60A5FA');
+      gradient.addColorStop(1, '#3B82F6');
+      
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#60A5FA';
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
       ctx.fill();
     } else {
-      bets.forEach((bet) => {
-        ctx.fillStyle = bet.color;
+      // Draw bet segments
+      gameState.bets.forEach((bet, index) => {
+        const isMyBet = bet.playerId === myPlayerId;
+        
+        // Create gradient for lighter, glowing colors
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+        const baseColor = bet.color;
+        gradient.addColorStop(0, baseColor + 'CC');
+        gradient.addColorStop(1, baseColor);
+        
+        ctx.fillStyle = gradient;
+        ctx.shadowBlur = isMyBet ? 40 : 20;
+        ctx.shadowColor = baseColor;
+        
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
         ctx.arc(
@@ -120,369 +290,375 @@ const RollsGame = () => {
         ctx.closePath();
         ctx.fill();
 
+        // Border
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.stroke();
+
+        // Draw avatar in the middle of segment
+        if (bet.avatar_url) {
+          const midAngle = ((bet.startAngle + bet.endAngle) / 2 * Math.PI) / 180;
+          const avatarRadius = radius * 0.65;
+          const avatarX = centerX + Math.cos(midAngle) * avatarRadius;
+          const avatarY = centerY + Math.sin(midAngle) * avatarRadius;
+          
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(avatarX, avatarY, 25, 0, Math.PI * 2);
+          ctx.clip();
+          
+          const img = new Image();
+          img.src = bet.avatar_url;
+          ctx.drawImage(img, avatarX - 25, avatarY - 25, 50, 50);
+          
+          ctx.restore();
+        }
+
+        // Player name and percentage
+        const midAngle = ((bet.startAngle + bet.endAngle) / 2 * Math.PI) / 180;
+        const textRadius = radius * 0.8;
+        const textX = centerX + Math.cos(midAngle) * textRadius;
+        const textY = centerY + Math.sin(midAngle) * textRadius;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#000000';
+        ctx.fillText(`${bet.percentage.toFixed(1)}%`, textX, textY);
       });
     }
 
     ctx.restore();
 
-    // Центр
-    ctx.fillStyle = 'rgba(10, 14, 39, 0.95)';
+    // Center circle with total pot
+    const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 0.3);
+    centerGradient.addColorStop(0, 'rgba(20, 20, 50, 0.95)');
+    centerGradient.addColorStop(1, 'rgba(10, 10, 30, 0.95)');
+    
+    ctx.fillStyle = centerGradient;
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#8B5CF6';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.25, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
     ctx.fill();
 
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`$${totalPot.toFixed(0)}`, centerX, centerY);
+    ctx.fillText(`💎${gameState.totalPot.toFixed(0)}`, centerX, centerY);
 
-    // Стрелка
+    // Arrow pointer
+    ctx.save();
     ctx.fillStyle = '#FF6B6B';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#FF6B6B';
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY - radius - 20);
-    ctx.lineTo(centerX - 15, centerY - radius - 40);
-    ctx.lineTo(centerX + 15, centerY - radius - 40);
+    ctx.moveTo(centerX, centerY - radius - 25);
+    ctx.lineTo(centerX - 15, centerY - radius - 45);
+    ctx.lineTo(centerX + 15, centerY - radius - 45);
     ctx.closePath();
     ctx.fill();
-  }, [bets, totalPot, rotation]);
+    ctx.restore();
+  }, [gameState, myPlayerId]);
 
-  const placeBet = () => {
-    if (betAmount > balance) {
-      alert('Недостаточно средств');
+  function placeBet() {
+    if (!wsRef.current || betAmount > balance) {
+      alert('Insufficient balance');
       return;
     }
 
-    if (gameStatus !== 'waiting') {
-      alert('Барабан уже крутится');
-      return;
-    }
+    wsRef.current.send(JSON.stringify({
+      type: 'PLACE_BET',
+      amount: betAmount,
+      userId: userId
+    }));
 
+    // Optimistically update balance
     const newBalance = balance - betAmount;
     setBalance(newBalance);
     saveBalance(newBalance);
+  }
 
-    const colors = ['#4169E1', '#8B5CF6', '#EC4899', '#F97316', '#10B981', '#06B6D4'];
-    const color = colors[bets.length % colors.length];
+  function cancelBet() {
+    if (!wsRef.current) return;
 
-    const newTotalPot = totalPot + betAmount;
-    const percentage = (betAmount / newTotalPot) * 100;
+    wsRef.current.send(JSON.stringify({
+      type: 'CANCEL_BET'
+    }));
+  }
 
-    let startAngle = 0;
-    const updatedBets = bets.map(bet => {
-      const newPercentage = (bet.amount / newTotalPot) * 100;
-      const newEndAngle = startAngle + (newPercentage / 100) * 360;
-      const updatedBet = {
-        ...bet,
-        percentage: newPercentage,
-        startAngle,
-        endAngle: newEndAngle,
-      };
-      startAngle = newEndAngle;
-      return updatedBet;
-    });
+  function sendChatMessage() {
+    if (!wsRef.current || !chatMessage.trim()) return;
 
-    const endAngle = startAngle + (percentage / 100) * 360;
+    wsRef.current.send(JSON.stringify({
+      type: 'CHAT_MESSAGE',
+      message: chatMessage.trim()
+    }));
 
-    const newBet: Bet = {
-      id: `bet_${Date.now()}`,
-      amount: betAmount,
-      color,
-      percentage,
-      startAngle,
-      endAngle,
-      playerName: username,
-    };
+    setChatMessage('');
+  }
 
-    setBets([...updatedBets, newBet]);
-    setTotalPot(newTotalPot);
-  };
-
-  const spin = () => {
-    if (bets.length < 2) {
-      alert('Нужно минимум 2 ставки');
-      return;
-    }
-
-    setGameStatus('spinning');
-
-    const random = Math.random();
-    let accumulated = 0;
-    let winningBet = bets[0];
-    const currentPot = totalPot;
-
-    for (const bet of bets) {
-      accumulated += bet.amount / currentPot;
-      if (random <= accumulated) {
-        winningBet = bet;
-        break;
-      }
-    }
-
-    const winningAngle = (winningBet.startAngle + winningBet.endAngle) / 2;
-    const targetRotation = 360 * 5 + winningAngle;
-
-    let startTime = Date.now();
-    const duration = 4000;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentRotation = easeOut * targetRotation;
-
-      setRotation(currentRotation);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setGameStatus('result');
-        setWinnerBet({ ...winningBet, amount: currentPot });
-        if (winningBet.playerName === username) {
-          const currentBalance = getBalance();
-          const newBalance = currentBalance + currentPot;
-          setBalance(newBalance);
-          saveBalance(newBalance);
-        }
-        
-        setBets([]);
-        setTotalPot(0);
-        setRotation(0);
-        
-        setTimeout(() => {
-          setGameStatus('waiting');
-          setWinnerBet(null);
-        }, 5000);
-      }
-    };
-
-    animate();
-  };
-
-  const reset = () => {
-    setGameStatus('waiting');
-    setBets([]);
-    setTotalPot(0);
-    setRotation(0);
-    setWinnerBet(null);
-  };
+  const myBet = gameState?.bets.find(bet => bet.playerId === myPlayerId);
+  const timeLeftSeconds = Math.ceil((gameState?.timeRemaining || 0) / 1000);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
-      {/* Header */}
-      <div className="border-b border-purple-500/30 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="hover:bg-purple-500/20 text-white h-8 w-8 md:h-10 md:w-10"
-            >
-              <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
-            </Button>
-            <div className="text-lg md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-teal-400 to-blue-400">
-              ROLLS
-            </div>
-          </div>
+    <div className="min-h-screen relative overflow-hidden pb-20 md:pb-0">
+      {/* Animated starry background */}
+      <canvas
+        ref={starsCanvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ background: 'radial-gradient(circle, #0a0a1e 0%, #000000 100%)' }}
+      />
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="px-2 md:px-4 py-1.5 md:py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-1 md:gap-2">
-              <Gem className="h-4 w-4 md:h-5 md:w-5 text-purple-300" />
-              <div className="text-sm md:text-lg font-bold text-white">{balance.toFixed(0)}</div>
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="border-b border-purple-500/30 bg-black/60 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="hover:bg-purple-500/20 text-white h-8 w-8 md:h-10 md:w-10"
+              >
+                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+              <div className="text-lg md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+                ROLLS
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="px-2 md:px-4 py-1.5 md:py-2 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center gap-1 md:gap-2">
+                <Gem className="h-4 w-4 md:h-5 md:w-5 text-purple-300" />
+                <div className="text-sm md:text-lg font-bold text-white">{balance.toFixed(0)}</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Game Area */}
-      <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
-        <div className="grid lg:grid-cols-[1fr,300px] gap-4 md:gap-6">
-          {/* Game Area */}
-          <div className="flex flex-col gap-3 md:gap-4">
-            {/* Wheel Display */}
-            <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-purple-500/30 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative">
-              <div className="relative w-full max-w-md">
-                <canvas
-                  ref={canvasRef}
-                  width={400}
-                  height={400}
-                  className="w-full h-auto"
-                />
-                {gameStatus === 'result' && winnerBet && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center bg-slate-900/95 backdrop-blur-sm p-4 md:p-6 rounded-lg border-2 border-green-500 animate-bounce">
-                      <Trophy className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 text-green-400" />
-                      <div className="text-xl md:text-2xl font-bold text-white">ВЫИГРЫШ!</div>
-                      <div className="text-base md:text-lg text-green-400 font-bold">
-                        💎 {winnerBet.amount.toFixed(0)}
-                      </div>
-                      <div className="text-xs md:text-sm text-purple-300 mt-2">
-                        {winnerBet.playerName}
-                      </div>
+        {/* Main Game Area */}
+        <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-[1fr,380px] gap-4">
+              {/* Wheel Section */}
+              <div className="space-y-4">
+                {/* Timer and Status */}
+                <Card className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-purple-500/30 p-4 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xl font-bold text-white">
+                      {gameState?.status === 'waiting' && `Time Left: ${timeLeftSeconds}s`}
+                      {gameState?.status === 'spinning' && 'SPINNING...'}
+                      {gameState?.status === 'result' && 'WINNER!'}
+                    </div>
+                    <div className="text-lg text-purple-300">
+                      Players: {gameState?.bets.length || 0}
                     </div>
                   </div>
+                </Card>
+
+                {/* Wheel Canvas */}
+                <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 p-4 md:p-6 backdrop-blur-sm">
+                  <canvas
+                    ref={canvasRef}
+                    width={500}
+                    height={500}
+                    className="w-full max-w-md mx-auto"
+                  />
+                </Card>
+
+                {/* Winner Display */}
+                {gameState?.status === 'result' && gameState.winnerBet && (
+                  <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50 p-4 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-300 mb-2">
+                        🎉 {gameState.winnerBet.playerName} WINS!
+                      </div>
+                      <div className="text-xl text-white">
+                        💎 {gameState.winnerBet.amount.toFixed(0)} (95% of pot)
+                      </div>
+                      <div className="text-sm text-gray-300 mt-1">
+                        5% house fee applied
+                      </div>
+                    </div>
+                  </Card>
                 )}
               </div>
-              
-              {/* Mobile indicator circle */}
-              <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2">
-                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-lg shadow-red-500/50"></div>
-              </div>
-            </Card>
 
-            {/* Controls */}
-            <div className="grid md:grid-cols-2 gap-3 md:gap-4">
-              {/* Left Panel */}
-              <Card className="bg-slate-800/50 border-purple-500/30 p-4 md:p-6">
-                <div className="space-y-3 md:space-y-4">
-                  <div>
-                    <label className="text-xs md:text-sm font-medium text-purple-300 mb-2 block">
-                      Сумма ставки
-                    </label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setBetAmount(Math.max(10, betAmount - 100))}
-                        className="border-purple-500/50 text-purple-300 h-8 md:h-10"
-                      >
-                        −
-                      </Button>
-                      <Input
-                        type="number"
-                        value={betAmount}
-                        onChange={(e) => setBetAmount(Number(e.target.value))}
-                        disabled={gameStatus !== 'waiting'}
-                        className="flex-1 bg-slate-700 border-purple-500/30 text-white text-center text-sm md:text-base h-8 md:h-10"
-                        min="1"
-                        max={balance}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setBetAmount(betAmount + 100)}
-                        className="border-purple-500/50 text-purple-300 h-8 md:h-10"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      {[50, 100, 200, 500].map(amount => (
+              {/* Betting Panel */}
+              <div className="space-y-4">
+                {/* My Bet */}
+                {myBet && (
+                  <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-500/50 p-4 backdrop-blur-sm shadow-lg shadow-green-500/20">
+                    <div className="text-sm font-semibold text-green-300 mb-2">YOUR BET</div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-white">💎 {myBet.amount}</div>
+                        <div className="text-sm text-green-200">Win chance: {myBet.percentage.toFixed(1)}%</div>
+                      </div>
+                      {gameState?.status === 'waiting' && (
                         <Button
-                          key={amount}
                           variant="outline"
                           size="sm"
-                          onClick={() => setBetAmount(amount)}
-                          disabled={gameStatus !== 'waiting'}
-                          className="flex-1 border-purple-500/50 text-purple-300 text-xs"
+                          onClick={cancelBet}
+                          className="border-red-500/50 text-red-300 hover:bg-red-500/20"
                         >
-                          +{amount}
+                          Cancel
                         </Button>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Bet Controls */}
+                <Card className="bg-gradient-to-br from-slate-900/80 to-purple-900/80 border-purple-500/30 p-4 backdrop-blur-sm">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-purple-300 mb-2 block">
+                        Bet Amount
+                      </label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setBetAmount(Math.max(10, betAmount - 50))}
+                          className="border-purple-500/50 text-purple-300"
+                        >
+                          −
+                        </Button>
+                        <Input
+                          type="number"
+                          value={betAmount}
+                          onChange={(e) => setBetAmount(Number(e.target.value))}
+                          className="flex-1 bg-slate-800 border-purple-500/30 text-white text-center"
+                          min="10"
+                          max={balance}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setBetAmount(betAmount + 50)}
+                          className="border-purple-500/50 text-purple-300"
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {[50, 100, 250, 500].map(amount => (
+                          <Button
+                            key={amount}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setBetAmount(amount)}
+                            className="flex-1 border-purple-500/50 text-purple-300 text-xs"
+                          >
+                            {amount}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={placeBet}
+                      disabled={gameState?.status !== 'waiting' || betAmount > balance}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg shadow-purple-500/50"
+                    >
+                      {myBet ? 'ADD MORE' : 'PLACE BET'}
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* All Bets */}
+                <Card className="bg-gradient-to-br from-slate-900/80 to-blue-900/80 border-blue-500/30 p-4 backdrop-blur-sm">
+                  <div className="text-sm font-semibold text-blue-300 mb-3">ALL BETS ({gameState?.bets.length || 0})</div>
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {gameState?.bets.map((bet) => (
+                        <div
+                          key={bet.id}
+                          className={`p-3 rounded-lg border ${
+                            bet.playerId === myPlayerId
+                              ? 'bg-green-500/20 border-green-500/50'
+                              : 'bg-slate-800/50 border-slate-700/50'
+                          }`}
+                          style={{ boxShadow: `0 0 15px ${bet.color}40` }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: bet.color, boxShadow: `0 0 8px ${bet.color}` }}
+                            />
+                            <div className="flex-1">
+                              <div className="font-semibold text-white text-sm">{bet.playerName}</div>
+                              <div className="text-xs text-gray-300">
+                                💎 {bet.amount} • {bet.percentage.toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-
-                  {gameStatus === 'waiting' && (
-                    <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12"
-                      onClick={placeBet}
-                      disabled={betAmount > balance}
-                    >
-                      ПОСТАВИТЬ
-                    </Button>
-                  )}
-                </div>
-              </Card>
-
-              {/* Right Panel */}
-              <Card className="bg-slate-800/50 border-purple-500/30 p-6">
-                <div className="space-y-4">
-                  {gameStatus === 'waiting' && bets.length >= 2 && (
-                    <Button
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold h-12"
-                      onClick={spin}
-                    >
-                      КРУТИТЬ БАРАБАН
-                    </Button>
-                  )}
-
-                  {gameStatus === 'spinning' && (
-                    <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold h-12"
-                      disabled
-                    >
-                      ВРАЩЕНИЕ...
-                    </Button>
-                  )}
-
-                  {gameStatus === 'result' && (
-                    <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12"
-                      onClick={reset}
-                    >
-                      НОВЫЙ РАУНД
-                    </Button>
-                  )}
-
-                  {totalPot > 0 && (
-                    <div className="p-3 bg-purple-500/20 border border-purple-500/50 rounded-lg text-center">
-                      <div className="text-xs text-purple-300">Общий банк</div>
-                      <div className="text-xl font-bold text-white">💎 {totalPot.toFixed(0)}</div>
-                    </div>
-                  )}
-                </div>
-              </Card>
+                  </ScrollArea>
+                </Card>
+              </div>
             </div>
           </div>
+        </main>
+      </div>
 
-          {/* Right Sidebar */}
-          <Card className="bg-slate-800/50 border-purple-500/30 p-4 h-fit">
-            <h3 className="text-sm font-semibold text-purple-300 mb-3">Ставки ({bets.length})</h3>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-2 pr-4">
-                {bets.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    Нет ставок
-                  </div>
-                ) : (
-                  bets.map((bet, idx) => (
-                    <div
-                      key={bet.id}
-                      className="p-3 bg-slate-700/50 border border-purple-500/30 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: bet.color }}
-                        />
-                        <span className="text-sm font-semibold text-white">{bet.playerName}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-purple-300">
-                        <span>💎 {bet.amount}</span>
-                        <span>{bet.percentage.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  ))
-                )}
+      {/* Mobile Chat FAB */}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+        <Button
+          onClick={() => setChatOpen(!chatOpen)}
+          className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg shadow-purple-500/50"
+          size="icon"
+        >
+          {chatOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        </Button>
+
+        {chatOpen && (
+          <Card className="absolute bottom-16 right-0 w-80 h-96 bg-slate-900/95 border-purple-500/30 backdrop-blur-lg">
+            <div className="flex flex-col h-full">
+              <div className="p-3 border-b border-purple-500/30">
+                <div className="font-bold text-white">Live Chat</div>
               </div>
-            </ScrollArea>
+              <ScrollArea className="flex-1 p-3">
+                <div className="space-y-2">
+                  {gameState?.chatMessages.map((msg) => (
+                    <div key={msg.id} className="text-sm">
+                      <span className="font-semibold text-purple-300">{msg.playerName}: </span>
+                      <span className="text-white">{msg.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <div className="p-3 border-t border-purple-500/30">
+                <div className="flex gap-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                    placeholder="Type message..."
+                    className="bg-slate-800 border-purple-500/30 text-white"
+                  />
+                  <Button
+                    onClick={sendChatMessage}
+                    size="icon"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </Card>
-        </div>
-      </main>
-
-      <style>{`
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-bounce {
-          animation: bounce 1s infinite;
-        }
-      `}</style>
+        )}
+      </div>
     </div>
   );
 };

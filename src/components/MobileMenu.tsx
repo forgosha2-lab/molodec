@@ -1,4 +1,4 @@
-import { Home, Gamepad2, Trophy, User, Gift } from "lucide-react";
+import { Home, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -32,30 +32,6 @@ export const MobileMenu = ({ activeTab, onTabChange, isAuthenticated }: MobileMe
         >
           <Home className="h-5 w-5" />
           <span className="text-xs">Главная</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`flex flex-col items-center gap-1 h-auto py-2 ${
-            isActive("/games") ? "text-primary bg-primary/10" : "text-muted-foreground"
-          }`}
-          onClick={() => handleNavigation("/games", "games")}
-        >
-          <Gamepad2 className="h-5 w-5" />
-          <span className="text-xs">Игры</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`flex flex-col items-center gap-1 h-auto py-2 ${
-            isActive("/tournaments") ? "text-primary bg-primary/10" : "text-muted-foreground"
-          }`}
-          onClick={() => handleNavigation("/tournaments", "tournaments")}
-        >
-          <Trophy className="h-5 w-5" />
-          <span className="text-xs">Соревнования</span>
         </Button>
 
         {isAuthenticated && (

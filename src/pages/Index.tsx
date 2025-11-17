@@ -170,8 +170,8 @@ const Index = () => {
               </h2>
             </div>
 
-            <div className="overflow-x-auto pb-4 -mx-4 px-4">
-              <div className="flex gap-3 md:gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 md:min-w-0">
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+              <div className="flex gap-3 md:gap-4 min-w-max">
                 <GameCard
                   title="UNO"
                   image={unoImg}

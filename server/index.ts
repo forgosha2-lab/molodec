@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { setupUnoWebSocket } from './websocket-uno.js';
+import { setupRollsWebSocket } from './rolls-websocket.js';
 import { setupDurakRoutes } from './durak-server.js';
 import { logRequest } from './logger.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -314,6 +315,7 @@ async function startServer() {
   const httpServer = createServer(app);
   
   setupUnoWebSocket(httpServer);
+  setupRollsWebSocket(httpServer);
 
   const host = process.env.HOST || '0.0.0.0';
   httpServer.listen(Number(PORT), host, () => {
