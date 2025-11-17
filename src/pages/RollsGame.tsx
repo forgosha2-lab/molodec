@@ -215,7 +215,8 @@ const RollsGame = () => {
         ctx.stroke();
 
         // Draw avatar in the middle of segment
-        if (bet.avatar_url) {
+        const betAvatar = (bet as any).avatar_url;
+        if (betAvatar) {
           const midAngle = ((bet.startAngle + bet.endAngle) / 2 * Math.PI) / 180;
           const avatarRadius = radius * 0.65;
           const avatarX = centerX + Math.cos(midAngle) * avatarRadius;
@@ -227,7 +228,7 @@ const RollsGame = () => {
           ctx.clip();
           
           const img = new Image();
-          img.src = bet.avatar_url;
+          img.src = betAvatar;
           ctx.drawImage(img, avatarX - 25, avatarY - 25, 50, 50);
           
           ctx.restore();
@@ -535,7 +536,7 @@ const RollsGame = () => {
                   {rollsChatMessages.map((msg) => (
                     <div key={msg.id} className="text-sm">
                       <span className="font-semibold text-purple-300">{msg.playerName}: </span>
-                      <span className="text-white">{msg.message}</span>
+                      <span className="text-white">{(msg as any).message}</span>
                     </div>
                   ))}
                 </div>
