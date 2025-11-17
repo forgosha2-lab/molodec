@@ -169,7 +169,7 @@ const DurakGame = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-game-table flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
         <div className="text-white text-2xl">Загрузка...</div>
       </div>
     );
@@ -177,7 +177,7 @@ const DurakGame = () => {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-game-table flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
         <div className="flex flex-col items-center gap-6 p-8 bg-card rounded-lg shadow-2xl">
           <h1 className="text-4xl font-bold">Дурак Подкидной</h1>
           <p className="text-lg text-muted-foreground">Выберите количество игроков</p>
@@ -208,7 +208,7 @@ const DurakGame = () => {
   const isGameEnded = gameState.phase === 'ended';
 
   return (
-    <div className="min-h-screen bg-game-table relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <div className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `repeating-linear-gradient(

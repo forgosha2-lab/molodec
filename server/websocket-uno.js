@@ -1,4 +1,4 @@
-import { WebSocketServer, WebSocket } from 'ws';
+import { Server as SocketIOServer } from 'socket.io';
 import { UnoStorage } from './uno-storage.js';
 import {
   generateRoomCode,
@@ -13,58 +13,51 @@ import {
 import { randomUUID } from 'crypto';
 
 export function setupUnoWebSocket(httpServer) {
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws-uno' });
-  const storage = new UnoStorage();
+  const io = new SocketIOServer(httpServer, {
+    path: '/ws-uno',
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
 
-  wss.on('connection', (ws) => {
+  const storage = new UnoStorage();
+  const socketToPlayer = new Map();
+
+  io.on('connection', (socket) => {
     console.log('New UNO WebSocket connection');
 
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        handleMessage(ws, message);
-      } catch (error) {
-        console.error('Error parsing message:', error);
-        sendError(ws, 'Неверный формат сообщения');
-      }
+    socket.on('create_room', (data) => {
+      handleCreateRoom(socket, data.playerName);
     });
 
-    ws.on('close', () => {
+    socket.on('join_room', (data) => {
+      handleJoinRoom(socket, data.roomCode, data.playerName);
+    });
+
+    socket.on('start_game', (data) => {
+      handleStartGame(socket, data.roomId);
+    });
+
+    socket.on('play_card', (data) => {
+      handlePlayCard(socket, data.roomId, data.cardId, data.selectedColor);
+    });
+
+    socket.on('draw_card', (data) => {
+      handleDrawCard(socket, data.roomId);
+    });
+
+    socket.on('call_uno', (data) => {
+      handleCallUno(socket, data.roomId);
+    });
+
+    socket.on('disconnect', () => {
       console.log('UNO WebSocket connection closed');
-      handleDisconnect(ws);
-    });
-
-    ws.on('error', (error) => {
-      console.error('UNO WebSocket error:', error);
+      handleDisconnect(socket);
     });
   });
 
-  function handleMessage(ws, message) {
-    switch (message.type) {
-      case 'create_room':
-        handleCreateRoom(ws, message.playerName);
-        break;
-      case 'join_room':
-        handleJoinRoom(ws, message.roomCode, message.playerName);
-        break;
-      case 'start_game':
-        handleStartGame(ws, message.roomId);
-        break;
-      case 'play_card':
-        handlePlayCard(ws, message.roomId, message.cardId, message.selectedColor);
-        break;
-      case 'draw_card':
-        handleDrawCard(ws, message.roomId);
-        break;
-      case 'call_uno':
-        handleCallUno(ws, message.roomId);
-        break;
-      default:
-        sendError(ws, 'Неизвестный тип сообщения');
-    }
-  }
-
-  function handleCreateRoom(ws, playerName) {
+  function handleCreateRoom(socket, playerName) {
     let code = generateRoomCode();
     while (storage.getRoomByCode(code)) {
       code = generateRoomCode();
@@ -82,31 +75,31 @@ export function setupUnoWebSocket(httpServer) {
 
     room.players.push(player);
     storage.updateRoom(room.id, room);
-    storage.addPlayerConnection(playerId, ws);
+    storage.addPlayerConnection(playerId, socket);
     storage.setPlayerRoom(playerId, room.id);
+    socketToPlayer.set(socket.id, playerId);
 
-    sendMessage(ws, {
-      type: 'room_created',
+    socket.emit('room_created', {
       room: sanitizeRoomForPlayer(room, playerId),
       playerId,
     });
   }
 
-  function handleJoinRoom(ws, roomCode, playerName) {
+  function handleJoinRoom(socket, roomCode, playerName) {
     const room = storage.getRoomByCode(roomCode);
 
     if (!room) {
-      sendError(ws, 'Комната не найдена');
+      socket.emit('error', { message: 'Комната не найдена' });
       return;
     }
 
     if (room.gameState !== 'waiting') {
-      sendError(ws, 'Игра уже началась');
+      socket.emit('error', { message: 'Игра уже началась' });
       return;
     }
 
     if (room.players.length >= 4) {
-      sendError(ws, 'Комната заполнена');
+      socket.emit('error', { message: 'Комната заполнена' });
       return;
     }
 
@@ -121,11 +114,11 @@ export function setupUnoWebSocket(httpServer) {
 
     room.players.push(player);
     storage.updateRoom(room.id, room);
-    storage.addPlayerConnection(playerId, ws);
+    storage.addPlayerConnection(playerId, socket);
     storage.setPlayerRoom(playerId, room.id);
+    socketToPlayer.set(socket.id, playerId);
 
-    sendMessage(ws, {
-      type: 'room_joined',
+    socket.emit('room_joined', {
       room: sanitizeRoomForPlayer(room, playerId),
       playerId,
     });
@@ -133,21 +126,21 @@ export function setupUnoWebSocket(httpServer) {
     broadcastToRoomSanitized(room.id, room, 'player_joined', playerId);
   }
 
-  function handleStartGame(ws, roomId) {
+  function handleStartGame(socket, roomId) {
     const room = storage.getRoom(roomId);
 
     if (!room) {
-      sendError(ws, 'Комната не найдена');
+      socket.emit('error', { message: 'Комната не найдена' });
       return;
     }
 
     if (room.players.length < 2) {
-      sendError(ws, 'Нужно минимум 2 игрока');
+      socket.emit('error', { message: 'Нужно минимум 2 игрока' });
       return;
     }
 
     if (room.players.length > 4) {
-      sendError(ws, 'Максимум 4 игрока');
+      socket.emit('error', { message: 'Максимум 4 игрока' });
       return;
     }
 
@@ -156,16 +149,16 @@ export function setupUnoWebSocket(httpServer) {
     broadcastToRoomSanitized(roomId, initializedRoom, 'game_state_update');
   }
 
-  function handlePlayCard(ws, roomId, cardId, selectedColor) {
+  function handlePlayCard(socket, roomId, cardId, selectedColor) {
     const room = storage.getRoom(roomId);
 
     if (!room) {
-      sendError(ws, 'Комната не найдена');
+      socket.emit('error', { message: 'Комната не найдена' });
       return;
     }
 
     if (room.gameState !== 'playing') {
-      sendError(ws, 'Игра не началась');
+      socket.emit('error', { message: 'Игра не началась' });
       return;
     }
 
@@ -173,13 +166,13 @@ export function setupUnoWebSocket(httpServer) {
     const card = currentPlayer.cards.find(c => c.id === cardId);
 
     if (!card) {
-      sendError(ws, 'Карта не найдена');
+      socket.emit('error', { message: 'Карта не найдена' });
       return;
     }
 
     const topCard = room.discardPile[room.discardPile.length - 1];
     if (!isValidPlay(card, topCard, room.selectedColor)) {
-      sendError(ws, 'Невозможно сыграть эту карту');
+      socket.emit('error', { message: 'Невозможно сыграть эту карту' });
       return;
     }
 
@@ -198,10 +191,9 @@ export function setupUnoWebSocket(httpServer) {
       storage.updateRoom(roomId, updatedRoom);
 
       updatedRoom.players.forEach(player => {
-        const playerWs = storage.getPlayerConnection(player.id);
-        if (playerWs) {
-          sendMessage(playerWs, {
-            type: 'game_over',
+        const playerSocket = storage.getPlayerConnection(player.id);
+        if (playerSocket) {
+          playerSocket.emit('game_over', {
             room: sanitizeRoomForPlayer(updatedRoom, player.id),
             winner: currentPlayer,
           });
@@ -231,16 +223,16 @@ export function setupUnoWebSocket(httpServer) {
     broadcastToRoomSanitized(roomId, updatedRoom, 'game_state_update');
   }
 
-  function handleDrawCard(ws, roomId) {
+  function handleDrawCard(socket, roomId) {
     const room = storage.getRoom(roomId);
 
     if (!room) {
-      sendError(ws, 'Комната не найдена');
+      socket.emit('error', { message: 'Комната не найдена' });
       return;
     }
 
     if (room.gameState !== 'playing') {
-      sendError(ws, 'Игра не началась');
+      socket.emit('error', { message: 'Игра не началась' });
       return;
     }
 
@@ -261,27 +253,27 @@ export function setupUnoWebSocket(httpServer) {
       storage.updateRoom(roomId, updatedRoom);
       broadcastToRoomSanitized(roomId, updatedRoom, 'game_state_update');
     } else {
-      sendError(ws, 'Нет карт в колоде');
+      socket.emit('error', { message: 'Нет карт в колоде' });
     }
   }
 
-  function handleCallUno(ws, roomId) {
+  function handleCallUno(socket, roomId) {
     const room = storage.getRoom(roomId);
 
     if (!room) {
-      sendError(ws, 'Комната не найдена');
+      socket.emit('error', { message: 'Комната не найдена' });
       return;
     }
 
-    const playerId = findPlayerIdByConnection(ws);
+    const playerId = socketToPlayer.get(socket.id);
     if (!playerId) {
-      sendError(ws, 'Игрок не найден');
+      socket.emit('error', { message: 'Игрок не найден' });
       return;
     }
 
     const player = room.players.find(p => p.id === playerId);
     if (!player) {
-      sendError(ws, 'Игрок не в этой комнате');
+      socket.emit('error', { message: 'Игрок не в этой комнате' });
       return;
     }
 
@@ -292,8 +284,8 @@ export function setupUnoWebSocket(httpServer) {
     }
   }
 
-  function handleDisconnect(ws) {
-    const playerId = findPlayerIdByConnection(ws);
+  function handleDisconnect(socket) {
+    const playerId = socketToPlayer.get(socket.id);
     if (playerId) {
       const roomId = storage.getPlayerRoom(playerId);
       if (roomId) {
@@ -317,54 +309,27 @@ export function setupUnoWebSocket(httpServer) {
         }
       }
       storage.removePlayerConnection(playerId);
+      socketToPlayer.delete(socket.id);
     }
-  }
-
-  function findPlayerIdByConnection(ws) {
-    // Get all rooms from storage
-    const allPlayerIds = Array.from(storage.playerRooms.keys());
-    for (const playerId of allPlayerIds) {
-      const playerWs = storage.getPlayerConnection(playerId);
-      if (playerWs === ws) {
-        return playerId;
-      }
-    }
-    return null;
-  }
-
-  function sendMessage(ws, message) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    }
-  }
-
-  function sendError(ws, errorMessage) {
-    sendMessage(ws, {
-      type: 'error',
-      message: errorMessage,
-    });
   }
 
   function broadcastToRoomSanitized(roomId, room, messageType, excludePlayerId) {
     room.players.forEach(player => {
       if (player.id !== excludePlayerId) {
-        const ws = storage.getPlayerConnection(player.id);
-        if (ws) {
+        const playerSocket = storage.getPlayerConnection(player.id);
+        if (playerSocket) {
           const sanitizedRoom = sanitizeRoomForPlayer(room, player.id);
           
           if (messageType === 'game_state_update') {
-            sendMessage(ws, {
-              type: 'game_state_update',
+            playerSocket.emit('game_state_update', {
               room: sanitizedRoom,
             });
           } else if (messageType === 'player_joined') {
-            sendMessage(ws, {
-              type: 'player_joined',
+            playerSocket.emit('player_joined', {
               room: sanitizedRoom,
             });
           } else if (messageType === 'player_left') {
-            sendMessage(ws, {
-              type: 'player_left',
+            playerSocket.emit('player_left', {
               room: sanitizedRoom,
               playerId: excludePlayerId || '',
             });
@@ -374,6 +339,5 @@ export function setupUnoWebSocket(httpServer) {
     });
   }
 
-  return wss;
+  return io;
 }
-
