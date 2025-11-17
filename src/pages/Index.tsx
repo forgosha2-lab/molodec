@@ -161,15 +161,14 @@ const Index = () => {
       <div className="flex">
         <main className="flex-1 pb-12">
           {/* Hero Banner Section */}
-          <section className="container px-4 py-4 md:py-8">
-            <div className="relative rounded-2xl md:rounded-3xl overflow-hidden">
+          <section className="container px-3 md:px-4 py-4 md:py-8">
+            <div className="relative rounded-xl md:rounded-2xl overflow-hidden">
               <img
                 src={bonusBanner}
                 alt="Bonus Banner"
-                className="w-full h-[180px] xs:h-[220px] sm:h-[280px] md:h-[350px] lg:h-[400px] object-cover object-center"
-                style={{ objectFit: 'cover' }}
+                className="w-full h-[160px] sm:h-[200px] md:h-[280px] lg:h-[350px] object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-between px-4 md:px-8">
+              <div className="absolute inset-0 flex items-center justify-between px-3 md:px-8">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -189,7 +188,7 @@ const Index = () => {
           </section>
 
           {/* Games Section */}
-          <section className="container px-4 py-4 md:py-8">
+          <section className="container px-3 md:px-4 py-4 md:py-8">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
                 <Coins className="h-5 w-5 md:h-6 md:w-6 text-primary" />
@@ -197,110 +196,78 @@ const Index = () => {
               </h2>
             </div>
 
-            <div className="md:hidden overflow-hidden -mx-4 px-4" ref={emblaRef}>
-              <div className="flex gap-2 pb-4">
-                <div className="flex-[0_0_72%] min-w-0">
-                  <GameCard
-                    title="UNO"
-                    image={unoImg}
-                    gradient="bg-gradient-to-br from-red-600 via-blue-600 to-green-600"
-                    onClick={handleUnoClick}
-                  />
-                </div>
-                <div className="flex-[0_0_72%] min-w-0">
-                  <GameCard
-                    title="Дурак"
-                    image={durakImg}
-                    gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
-                    onClick={handleDurakClick}
-                  />
-                </div>
-                <div className="flex-[0_0_72%] min-w-0">
-                  <GameCard
-                    title="Coinflip"
-                    image={coinflipImg}
-                    gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
-                    onClick={() => navigate("/coinflip-game")}
-                  />
-                </div>
-                <div className="flex-[0_0_72%] min-w-0">
-                  <GameCard
-                    title="Rolls"
-                    image={rollsImg}
-                    gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
-                    onClick={() => navigate("/rolls-game")}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden md:block overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-              <div className="flex gap-3 md:gap-4 min-w-max">
-                <GameCard
-                  title="UNO"
-                  image={unoImg}
-                  gradient="bg-gradient-to-br from-red-600 via-blue-600 to-green-600"
-                  onClick={handleUnoClick}
-                />
-                <GameCard
-                  title="Дурак"
-                  image={durakImg}
-                  gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
-                  onClick={handleDurakClick}
-                />
-                <GameCard
-                  title="Coinflip"
-                  image={coinflipImg}
-                  gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
-                  onClick={() => navigate("/coinflip-game")}
-                />
-                <GameCard
-                  title="Rolls"
-                  image={rollsImg}
-                  gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
-                  onClick={() => navigate("/rolls-game")}
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-2 md:gap-3 md:flex md:flex-nowrap md:overflow-x-auto">
+              <GameCard
+                title="UNO"
+                image={unoImg}
+                gradient="bg-gradient-to-br from-red-600 via-blue-600 to-green-600"
+                onClick={handleUnoClick}
+              />
+              <GameCard
+                title="Дурак"
+                image={durakImg}
+                gradient="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
+                onClick={handleDurakClick}
+              />
+              <GameCard
+                title="Coinflip"
+                image={coinflipImg}
+                gradient="bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600"
+                onClick={() => navigate("/coinflip-game")}
+              />
+              <GameCard
+                title="Rolls"
+                image={rollsImg}
+                gradient="bg-gradient-to-br from-green-600 via-teal-600 to-blue-600"
+                onClick={() => navigate("/rolls-game")}
+              />
             </div>
           </section>
 
           {/* Leaderboard Section */}
-          <section className="container px-4 py-4 md:py-8">
+          <section className="container px-3 md:px-4 py-4 md:py-8">
             <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
               <Gem className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               Рейтинг богатейших игроков
             </h2>
 
             <Card className="p-4 md:p-6">
-              <div className="space-y-2 md:space-y-4">
-                {(topPlayers.length > 0 ? topPlayers : [
-                  { username: "Player***", diamondsBalance: 125890 },
-                  { username: "Gamer***", diamondsBalance: 98450 },
-                  { username: "Pro***", diamondsBalance: 87230 },
-                  { username: "Winner***", diamondsBalance: 76540 },
-                  { username: "Lucky***", diamondsBalance: 65890 },
-                ]).map((player, index) => (
-                  <div
-                    key={player.id || index}
-                    className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 md:gap-4">
-                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-sm md:text-base">
-                        {index + 1}
+              {topPlayers.length > 0 ? (
+                <div className="space-y-2 md:space-y-3">
+                  {topPlayers.map((player, index) => (
+                    <div
+                      key={player.id || index}
+                      className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-xs md:text-sm">
+                          {index + 1}
+                        </div>
+                        {player.avatarUrl ? (
+                          <img
+                            src={player.avatarUrl}
+                            alt={player.username}
+                            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover border-2 border-primary/20"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border-2 border-primary/20">
+                            <span className="text-sm md:text-base font-bold text-primary">
+                              {player.username?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                        )}
+                        <span className="font-semibold text-sm md:text-base">{player.username}</span>
                       </div>
-                      {player.avatarUrl && (
-                        <img
-                          src={player.avatarUrl}
-                          alt={player.username}
-                          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
-                        />
-                      )}
-                      <span className="font-semibold text-sm md:text-base">{player.username}</span>
+                      <span className="font-bold text-sm md:text-base">💎 {(player.diamondsBalance || 0).toLocaleString()}</span>
                     </div>
-                    <span className="font-bold text-sm md:text-lg">💎 {(player.diamondsBalance || 0).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm md:text-base">Пока нет игроков в рейтинге</p>
+                  <p className="text-xs md:text-sm mt-2">Начните играть, чтобы попасть в топ!</p>
+                </div>
+              )}
             </Card>
           </section>
         </main>

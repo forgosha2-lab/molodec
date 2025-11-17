@@ -21,7 +21,7 @@ interface Bet {
 }
 
 interface GameState {
-  status: 'waiting' | 'spinning' | 'result';
+  status: 'waiting' | 'countdown' | 'spinning' | 'result';
   bets: Bet[];
   totalPot: number;
   timeRemaining: number;
@@ -352,13 +352,15 @@ const RollsGame = () => {
                 {/* Timer and Status */}
                 <Card className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-purple-500/30 p-4 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
-                    <div className="text-xl font-bold text-white">
-                      {rollsGameState?.status === 'waiting' && `Time Left: ${timeLeftSeconds}s`}
-                      {rollsGameState?.status === 'spinning' && 'SPINNING...'}
-                      {rollsGameState?.status === 'result' && 'WINNER!'}
+                    <div className="text-lg md:text-xl font-bold text-white">
+                      {rollsGameState?.status === 'waiting' && timeLeftSeconds === 0 && 'Ожидание игроков...'}
+                      {rollsGameState?.status === 'waiting' && timeLeftSeconds > 0 && `Время: ${timeLeftSeconds}с`}
+                      {rollsGameState?.status === 'countdown' && `Время: ${timeLeftSeconds}с`}
+                      {rollsGameState?.status === 'spinning' && 'КРУТИТСЯ...'}
+                      {rollsGameState?.status === 'result' && 'ПОБЕДИТЕЛЬ!'}
                     </div>
-                    <div className="text-lg text-purple-300">
-                      Players: {rollsGameState?.bets.length || 0}
+                    <div className="text-sm md:text-lg text-purple-300">
+                      Игроков: {rollsGameState?.bets.length || 0}
                     </div>
                   </div>
                 </Card>
@@ -402,14 +404,14 @@ const RollsGame = () => {
                         <div className="text-2xl font-bold text-white">💎 {myBet.amount}</div>
                         <div className="text-sm text-green-200">Win chance: {myBet.percentage.toFixed(1)}%</div>
                       </div>
-                      {rollsGameState?.status === 'waiting' && (
+                      {(rollsGameState?.status === 'waiting' || rollsGameState?.status === 'countdown') && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={cancelBet}
                           className="border-red-500/50 text-red-300 hover:bg-red-500/20"
                         >
-                          Cancel
+                          Отменить
                         </Button>
                       )}
                     </div>
@@ -466,7 +468,7 @@ const RollsGame = () => {
 
                     <Button
                       onClick={placeBet}
-                      disabled={rollsGameState?.status !== 'waiting' || betAmount > balance}
+                      disabled={(rollsGameState?.status !== 'waiting' && rollsGameState?.status !== 'countdown') || betAmount > balance}
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg shadow-purple-500/50"
                     >
                       {myBet ? 'ADD MORE' : 'PLACE BET'}

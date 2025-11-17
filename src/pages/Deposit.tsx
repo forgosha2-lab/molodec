@@ -4,7 +4,8 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Wallet, Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Wallet, Info, ArrowDownToLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getBalance, subscribeToBalance } from "@/lib/balanceSync";
 
@@ -49,10 +50,10 @@ const Deposit = () => {
       return;
     }
 
-    if (depositAmount < 50) {
+    if (depositAmount < 100) {
       toast({
         title: "Ошибка",
-        description: "Минимальная сумма пополнения - 50 💎",
+        description: "Минимальная сумма пополнения - 100 💎",
         variant: "destructive",
       });
       return;
@@ -60,6 +61,41 @@ const Deposit = () => {
 
     toast({
       title: "Пополнение через Криптобот",
+      description: "Функция в разработке. Скоро будет доступна!",
+    });
+  };
+
+  const handleWithdrawal = () => {
+    const withdrawalAmount = parseInt(amount);
+    if (!withdrawalAmount || withdrawalAmount <= 0) {
+      toast({
+        title: "Ошибка",
+        description: "Введите корректную сумму",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (withdrawalAmount < 100) {
+      toast({
+        title: "Ошибка",
+        description: "Минимальная сумма вывода - 100 💎",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (withdrawalAmount > balance) {
+      toast({
+        title: "Ошибка",
+        description: "Недостаточно средств на балансе",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Вывод через Криптобот",
       description: "Функция в разработке. Скоро будет доступна!",
     });
   };
@@ -74,113 +110,224 @@ const Deposit = () => {
       />
 
       <div className="flex">
-        <main className="flex-1 container px-4 py-6">
+        <main className="flex-1 container px-3 md:px-4 py-4 md:py-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
-            className="mb-6"
+            className="mb-4 md:mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Назад
           </Button>
 
-          <h1 className="text-3xl font-bold mb-6">Пополнение баланса</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Баланс</h1>
 
-          <div className="grid gap-6 max-w-2xl">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
-                Способ оплаты
-              </h2>
+          <Tabs defaultValue="deposit" className="w-full max-w-2xl">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="deposit" className="gap-2">
+                <Wallet className="h-4 w-4" />
+                Пополнение
+              </TabsTrigger>
+              <TabsTrigger value="withdrawal" className="gap-2">
+                <ArrowDownToLine className="h-4 w-4" />
+                Вывод
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="space-y-3">
-                <button
-                  onClick={() => setSelectedMethod("cryptobot")}
-                  className={`w-full p-4 rounded-lg border-2 transition-all ${
-                    selectedMethod === "cryptobot"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <Wallet className="h-6 w-6 text-blue-500" />
+            <TabsContent value="deposit" className="space-y-4 md:space-y-6">
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  Способ оплаты
+                </h2>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setSelectedMethod("cryptobot")}
+                    className={`w-full p-3 md:p-4 rounded-lg border-2 transition-all ${
+                      selectedMethod === "cryptobot"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                          <Wallet className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm md:text-base">Crypto Bot</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">
+                            Пополнение через Telegram
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <p className="font-semibold">Crypto Bot</p>
-                        <p className="text-sm text-muted-foreground">
-                          Пополнение через Telegram Crypto Bot
-                        </p>
-                      </div>
+                      {selectedMethod === "cryptobot" && (
+                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        </div>
+                      )}
                     </div>
-                    {selectedMethod === "cryptobot" && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      </div>
-                    )}
+                  </button>
+                </div>
+              </Card>
+
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">Сумма пополнения</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <Input
+                      type="number"
+                      placeholder="Введите сумму"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="text-base md:text-lg h-12 md:h-auto"
+                      min="100"
+                    />
+                    <p className="text-xs md:text-sm text-muted-foreground mt-2">
+                      Минимальная сумма: 100 💎
+                    </p>
                   </div>
-                </button>
-              </div>
-            </Card>
 
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Сумма пополнения</h2>
-
-              <div className="space-y-4">
-                <div>
-                  <Input
-                    type="number"
-                    placeholder="Введите сумму"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="text-lg"
-                    min="50"
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Минимальная сумма: 50 💎
-                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[100, 500, 1000, 2500, 5000, 10000].map((value) => (
+                      <Button
+                        key={value}
+                        variant="outline"
+                        onClick={() => setAmount(value.toString())}
+                        className="w-full text-xs md:text-sm h-10 md:h-auto"
+                      >
+                        {value} 💎
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+              </Card>
 
-                <div className="grid grid-cols-3 gap-2">
-                  {[100, 500, 1000, 2500, 5000, 10000].map((value) => (
-                    <Button
-                      key={value}
-                      variant="outline"
-                      onClick={() => setAmount(value.toString())}
-                      className="w-full"
-                    >
-                      {value} 💎
-                    </Button>
-                  ))}
+              <Card className="p-4 md:p-6 bg-blue-500/10 border-blue-500/20">
+                <div className="flex items-start gap-2 md:gap-3">
+                  <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold mb-1 text-sm md:text-base">Важная информация</p>
+                    <ul className="text-xs md:text-sm text-muted-foreground space-y-1">
+                      <li>• Пополнение происходит мгновенно</li>
+                      <li>• Минимальная сумма пополнения: 100 💎</li>
+                      <li>• 1 алмаз = 1₽</li>
+                      <li>• Для пополнения используйте Telegram Crypto Bot</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="p-6 bg-blue-500/10 border-blue-500/20">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div>
-                  <p className="font-semibold mb-1">Важная информация</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Пополнение происходит мгновенно</li>
-                    <li>• Минимальная сумма пополнения: 50 💎</li>
-                    <li>• Комиссия платежной системы может варьироваться</li>
-                    <li>• Для пополнения используйте Telegram Crypto Bot</li>
-                  </ul>
+              <Button
+                size="lg"
+                className="w-full h-12 md:h-auto text-sm md:text-base"
+                onClick={handleDeposit}
+                disabled={!amount || parseInt(amount) < 100}
+              >
+                Пополнить на {amount || "0"} 💎
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="withdrawal" className="space-y-4 md:space-y-6">
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  Способ вывода
+                </h2>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setSelectedMethod("cryptobot")}
+                    className={`w-full p-3 md:p-4 rounded-lg border-2 transition-all ${
+                      selectedMethod === "cryptobot"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                          <Wallet className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm md:text-base">Crypto Bot</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">
+                            Вывод через Telegram
+                          </p>
+                        </div>
+                      </div>
+                      {selectedMethod === "cryptobot" && (
+                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
                 </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={handleDeposit}
-              disabled={!amount || parseInt(amount) < 50}
-            >
-              Пополнить на {amount || "0"} 💎
-            </Button>
-          </div>
+              <Card className="p-4 md:p-6">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">Сумма вывода</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <Input
+                      type="number"
+                      placeholder="Введите сумму"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="text-base md:text-lg h-12 md:h-auto"
+                      min="100"
+                      max={balance}
+                    />
+                    <p className="text-xs md:text-sm text-muted-foreground mt-2">
+                      Минимальная сумма: 100 💎 | Доступно: {balance.toLocaleString()} 💎
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {[100, 500, 1000, 2500, 5000, balance].map((value, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        onClick={() => setAmount(value.toString())}
+                        className="w-full text-xs md:text-sm h-10 md:h-auto"
+                        disabled={value > balance}
+                      >
+                        {index === 5 ? "Все" : `${value} 💎`}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-4 md:p-6 bg-blue-500/10 border-blue-500/20">
+                <div className="flex items-start gap-2 md:gap-3">
+                  <Info className="h-4 w-4 md:h-5 md:w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold mb-1 text-sm md:text-base">Важная информация</p>
+                    <ul className="text-xs md:text-sm text-muted-foreground space-y-1">
+                      <li>• Вывод обрабатывается в течение 24 часов</li>
+                      <li>• Минимальная сумма вывода: 100 💎</li>
+                      <li>• 1 алмаз = 1₽</li>
+                      <li>• Для вывода используйте Telegram Crypto Bot</li>
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+
+              <Button
+                size="lg"
+                className="w-full h-12 md:h-auto text-sm md:text-base"
+                onClick={handleWithdrawal}
+                disabled={!amount || parseInt(amount) < 100 || parseInt(amount) > balance}
+              >
+                Вывести {amount || "0"} 💎
+              </Button>
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </div>
