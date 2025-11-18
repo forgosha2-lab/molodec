@@ -1,0 +1,13 @@
+{
+  "name": "websocket-chat",
+  "version": "1.0.0",
+  "description": "WebSocket chat with spinning circle online indicator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
+}
