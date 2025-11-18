@@ -357,6 +357,9 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
                 .set({ diamondsBalance: newBalance })
                 .where(eq(profiles.id, userId));
 
+              // Send balance update to client immediately
+              sendToClient(ws, 'BALANCE_UPDATE', { newBalance });
+
               // Check if player already has a bet
               const existingBetIndex = gameState.bets.findIndex(bet => bet.playerId === connectionId);
               if (existingBetIndex !== -1) {

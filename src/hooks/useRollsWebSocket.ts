@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { setBalance } from '@/lib/balanceSync';
 
 interface RollsGameState {
   status: 'waiting' | 'countdown' | 'spinning' | 'result';
@@ -125,12 +126,14 @@ export function useRollsWebSocket() {
             case 'BALANCE_UPDATE':
               if (message.data.newBalance !== undefined) {
                 setPlayer(prev => prev ? { ...prev, balance: message.data.newBalance } : prev);
+                setBalance(message.data.newBalance);
               }
               break;
 
             case 'ROUND_CANCELLED':
               if (message.data.newBalance !== undefined) {
                 setPlayer(prev => prev ? { ...prev, balance: message.data.newBalance } : prev);
+                setBalance(message.data.newBalance);
               }
               break;
 
