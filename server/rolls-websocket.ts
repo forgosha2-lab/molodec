@@ -1,4 +1,4 @@
-import { Server as SocketIOServer } from 'socket.io';
+import { WebSocketServer, WebSocket } from 'ws';
 import { randomUUID } from 'crypto';
 import { db } from './db.js';
 import { profiles, gameEarnings } from '../shared/schema.js';
@@ -10,6 +10,7 @@ interface Player {
   name: string;
   userId: string;
   avatarUrl?: string;
+  ws: WebSocket;
 }
 
 interface Bet {
@@ -44,13 +45,15 @@ interface ChatMessage {
   timestamp: number;
 }
 
+interface WebSocketMessage {
+  type: string;
+  data?: any;
+}
+
 export function setupRollsWebSocket(httpServer: HTTPServer) {
-  const io = new SocketIOServer(httpServer, {
-    path: '/ws-rolls',
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
-    }
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws-rolls'
   });
 
   const players = new Map<string, Player>();
@@ -77,7 +80,23 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
 
   // Broadcast state to all connected clients
   function broadcastState() {
-    io.emit('STATE_SYNC', gameState);
+    const message = JSON.stringify({
+      type: 'STATE_SYNC',
+      data: gameState
+    });
+    
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+
+  // Send message to specific client
+  function sendToClient(ws: WebSocket, type: string, data: any) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, data }));
+    }
   }
 
   // Start a new round
@@ -123,7 +142,8 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
         } else if (gameState.bets.length === 1) {
           // Only one bet - refund and reset
           const bet = gameState.bets[0];
-          refundPlayer(bet.userId, bet.amount, bet.playerId);
+          const player = players.get(bet.playerId);
+          refundPlayer(bet.userId, bet.amount, player?.ws);
           startNewRound();
         } else {
           // No bets - reset
@@ -192,7 +212,8 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
         gameState.winnerBet = { ...winningBet, amount: winAmount };
         
         // Update winner's balance
-        updateWinnerBalance(winningBet.userId, winAmount, winningBet.playerId);
+        const winner = players.get(winningBet.playerId);
+        updateWinnerBalance(winningBet.userId, winAmount, winner?.ws);
         
         broadcastState();
 
@@ -207,7 +228,7 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
   }
 
   // Update player balance in database
-  async function updateWinnerBalance(userId: string, amount: number, playerId: string) {
+  async function updateWinnerBalance(userId: string, amount: number, ws?: WebSocket) {
     try {
       const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
       if (userResult.length > 0) {
@@ -219,7 +240,9 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
           .where(eq(profiles.id, userId));
           
         // Send balance update to winner
-        io.to(playerId).emit('BALANCE_UPDATE', { newBalance });
+        if (ws) {
+          sendToClient(ws, 'BALANCE_UPDATE', { newBalance });
+        }
       }
     } catch (error) {
       console.error('Error updating winner balance:', error);
@@ -227,7 +250,7 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
   }
   
   // Refund player
-  async function refundPlayer(userId: string, amount: number, playerId?: string) {
+  async function refundPlayer(userId: string, amount: number, ws?: WebSocket) {
     try {
       const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
       if (userResult.length > 0) {
@@ -239,8 +262,8 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
           .where(eq(profiles.id, userId));
           
         // Send refund notification if connected
-        if (playerId) {
-          io.to(playerId).emit('ROUND_CANCELLED', {
+        if (ws) {
+          sendToClient(ws, 'ROUND_CANCELLED', {
             refundAmount: amount,
             newBalance: newBalance
           });
@@ -251,211 +274,237 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
     }
   }
 
-  // Handle socket connections
-  io.on('connection', (socket) => {
-    const connectionId = socket.id;
+  // Handle WebSocket connections
+  wss.on('connection', (ws: WebSocket) => {
+    const connectionId = randomUUID();
     console.log(`New Rolls WebSocket connection: ${connectionId}`);
 
     // Send current state immediately
-    socket.emit('CONNECTION_ACK', {
+    sendToClient(ws, 'CONNECTION_ACK', {
       connectionId,
       state: gameState
     });
 
-    // Handle JOIN event
-    socket.on('JOIN', async (message: any) => {
-      const { userId, username } = message;
-      
-      // Get user avatar and balance from database
-      let avatarUrl = null;
-      let balance = 100; // Default balance
+    // Handle messages
+    ws.on('message', async (message: string) => {
       try {
-        const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
-        if (userResult.length > 0) {
-          avatarUrl = userResult[0].avatarUrl;
-          balance = userResult[0].diamondsBalance || 100;
+        const parsed: WebSocketMessage = JSON.parse(message.toString());
+        
+        switch (parsed.type) {
+          case 'JOIN': {
+            const { userId, username } = parsed.data || {};
+            
+            // Get user avatar and balance from database
+            let avatarUrl = null;
+            let balance = 100; // Default balance
+            try {
+              const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+              if (userResult.length > 0) {
+                avatarUrl = userResult[0].avatarUrl;
+                balance = userResult[0].diamondsBalance || 100;
+              }
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+            }
+
+            const player: Player = {
+              id: connectionId,
+              name: username || 'Player',
+              userId,
+              avatarUrl: avatarUrl || undefined,
+              ws
+            };
+
+            players.set(connectionId, player);
+
+            sendToClient(ws, 'JOIN_ACK', {
+              playerId: connectionId,
+              balance: balance,
+              state: gameState
+            });
+            break;
+          }
+
+          case 'PLACE_BET': {
+            const { amount, userId } = parsed.data || {};
+            const player = players.get(connectionId);
+
+            if (!player) {
+              sendToClient(ws, 'ERROR', { message: 'Player not found' });
+              return;
+            }
+
+            if (gameState.status === 'spinning' || gameState.status === 'result') {
+              sendToClient(ws, 'ERROR', { message: 'Cannot bet during spin or result phase' });
+              return;
+            }
+
+            // Check and debit balance in database
+            try {
+              const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+              if (userResult.length === 0 || (userResult[0].diamondsBalance || 0) < amount) {
+                sendToClient(ws, 'ERROR', { message: 'Insufficient balance' });
+                return;
+              }
+
+              // Deduct balance from database atomically
+              const currentBalance = userResult[0].diamondsBalance || 0;
+              const newBalance = currentBalance - amount;
+              await db.update(profiles)
+                .set({ diamondsBalance: newBalance })
+                .where(eq(profiles.id, userId));
+
+              // Check if player already has a bet
+              const existingBetIndex = gameState.bets.findIndex(bet => bet.playerId === connectionId);
+              if (existingBetIndex !== -1) {
+                // Add to existing bet
+                gameState.bets[existingBetIndex].amount += amount;
+              } else {
+                // Create new bet
+                const colorIndex = gameState.bets.length % COLORS.length;
+                const newBet: Bet = {
+                  id: randomUUID(),
+                  playerId: connectionId,
+                  userId: userId,
+                  playerName: player.name,
+                  amount,
+                  color: COLORS[colorIndex],
+                  percentage: 0,
+                  startAngle: 0,
+                  endAngle: 0,
+                  avatar_url: player.avatarUrl
+                };
+
+                gameState.bets.push(newBet);
+              }
+            } catch (error) {
+              console.error('Error placing bet:', error);
+              sendToClient(ws, 'ERROR', { message: 'Failed to place bet' });
+              return;
+            }
+
+            // Recalculate percentages and angles
+            const newTotalPot = gameState.bets.reduce((sum, bet) => sum + bet.amount, 0);
+            gameState.totalPot = newTotalPot;
+
+            let startAngle = 0;
+            gameState.bets.forEach(bet => {
+              bet.percentage = (bet.amount / newTotalPot) * 100;
+              bet.startAngle = startAngle;
+              bet.endAngle = startAngle + (bet.percentage / 100) * 360;
+              startAngle = bet.endAngle;
+            });
+
+            broadcastState();
+
+            sendToClient(ws, 'BET_PLACED', {
+              bet: gameState.bets.find(b => b.playerId === connectionId)
+            });
+
+            // Start countdown if we have 2 or more unique players and we're in waiting state
+            const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
+            if (uniquePlayers.size >= MIN_PLAYERS_TO_START && gameState.status === 'waiting') {
+              startCountdown();
+            }
+            break;
+          }
+
+          case 'CANCEL_BET': {
+            if (gameState.status === 'spinning' || gameState.status === 'result') {
+              sendToClient(ws, 'ERROR', { message: 'Cannot cancel bet during spin or result phase' });
+              return;
+            }
+
+            const betIndex = gameState.bets.findIndex(bet => bet.playerId === connectionId);
+            if (betIndex === -1) {
+              sendToClient(ws, 'ERROR', { message: 'No bet to cancel' });
+              return;
+            }
+
+            const bet = gameState.bets[betIndex];
+            gameState.bets.splice(betIndex, 1);
+
+            // Refund player in database
+            await refundPlayer(bet.userId, bet.amount, ws);
+
+            // Recalculate percentages
+            const newTotalPot = gameState.bets.reduce((sum, b) => sum + b.amount, 0);
+            gameState.totalPot = newTotalPot;
+
+            if (gameState.bets.length > 0) {
+              let startAngle = 0;
+              gameState.bets.forEach(b => {
+                b.percentage = (b.amount / newTotalPot) * 100;
+                b.startAngle = startAngle;
+                b.endAngle = startAngle + (b.percentage / 100) * 360;
+                startAngle = b.endAngle;
+              });
+            }
+            
+            // If bet count drops below minimum, stop countdown and go back to waiting
+            const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
+            if (uniquePlayers.size < MIN_PLAYERS_TO_START && gameState.status === 'countdown') {
+              if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+              }
+              gameState.status = 'waiting';
+              gameState.timeRemaining = 0;
+            }
+
+            broadcastState();
+            break;
+          }
+
+          case 'CHAT_MESSAGE': {
+            const player = players.get(connectionId);
+            if (!player) return;
+
+            const chatMessage: ChatMessage = {
+              id: randomUUID(),
+              playerId: connectionId,
+              playerName: player.name,
+              message: parsed.data?.message || '',
+              timestamp: Date.now()
+            };
+
+            gameState.chatMessages.push(chatMessage);
+            
+            // Keep only last 50 messages
+            if (gameState.chatMessages.length > 50) {
+              gameState.chatMessages = gameState.chatMessages.slice(-50);
+            }
+
+            // Broadcast chat message to all clients
+            const chatBroadcast = JSON.stringify({
+              type: 'CHAT_MESSAGE',
+              data: { message: chatMessage }
+            });
+            
+            wss.clients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(chatBroadcast);
+              }
+            });
+            break;
+          }
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('Error handling message:', error);
+        sendToClient(ws, 'ERROR', { message: 'Invalid message format' });
       }
-
-      const player: Player = {
-        id: connectionId,
-        name: username || 'Player',
-        userId,
-        avatarUrl: avatarUrl || undefined
-      };
-
-      players.set(connectionId, player);
-
-      socket.emit('JOIN_ACK', {
-        playerId: connectionId,
-        balance: balance,
-        state: gameState
-      });
-    });
-
-    // Handle PLACE_BET event
-    socket.on('PLACE_BET', async (message: any) => {
-      const { amount, userId } = message;
-      const player = players.get(connectionId);
-
-      if (!player) {
-        socket.emit('ERROR', { message: 'Player not found' });
-        return;
-      }
-
-      if (gameState.status === 'spinning' || gameState.status === 'result') {
-        socket.emit('ERROR', { message: 'Cannot bet during spin or result phase' });
-        return;
-      }
-
-      // Check and debit balance in database
-      try {
-        const userResult = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
-        if (userResult.length === 0 || (userResult[0].diamondsBalance || 0) < amount) {
-          socket.emit('ERROR', { message: 'Insufficient balance' });
-          return;
-        }
-
-        // Deduct balance from database atomically
-        const currentBalance = userResult[0].diamondsBalance || 0;
-        const newBalance = currentBalance - amount;
-        await db.update(profiles)
-          .set({ diamondsBalance: newBalance })
-          .where(eq(profiles.id, userId));
-
-        // Check if player already has a bet
-        const existingBetIndex = gameState.bets.findIndex(bet => bet.playerId === connectionId);
-        if (existingBetIndex !== -1) {
-          // Add to existing bet
-          gameState.bets[existingBetIndex].amount += amount;
-        } else {
-          // Create new bet
-          const colorIndex = gameState.bets.length % COLORS.length;
-          const newBet: Bet = {
-            id: randomUUID(),
-            playerId: connectionId,
-            userId: userId,
-            playerName: player.name,
-            amount,
-            color: COLORS[colorIndex],
-            percentage: 0,
-            startAngle: 0,
-            endAngle: 0,
-            avatar_url: player.avatarUrl
-          };
-
-          gameState.bets.push(newBet);
-        }
-      } catch (error) {
-        console.error('Error placing bet:', error);
-        socket.emit('ERROR', { message: 'Failed to place bet' });
-        return;
-      }
-
-      // Recalculate percentages and angles
-      const newTotalPot = gameState.bets.reduce((sum, bet) => sum + bet.amount, 0);
-      gameState.totalPot = newTotalPot;
-
-      let startAngle = 0;
-      gameState.bets.forEach(bet => {
-        bet.percentage = (bet.amount / newTotalPot) * 100;
-        bet.startAngle = startAngle;
-        bet.endAngle = startAngle + (bet.percentage / 100) * 360;
-        startAngle = bet.endAngle;
-      });
-
-      broadcastState();
-
-      socket.emit('BET_PLACED', {
-        bet: gameState.bets.find(b => b.playerId === connectionId)
-      });
-
-      // Start countdown if we have 2 or more unique players and we're in waiting state
-      const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
-      if (uniquePlayers.size >= MIN_PLAYERS_TO_START && gameState.status === 'waiting') {
-        startCountdown();
-      }
-    });
-
-    // Handle CANCEL_BET event
-    socket.on('CANCEL_BET', async () => {
-      if (gameState.status === 'spinning' || gameState.status === 'result') {
-        socket.emit('ERROR', { message: 'Cannot cancel bet during spin or result phase' });
-        return;
-      }
-
-      const betIndex = gameState.bets.findIndex(bet => bet.playerId === connectionId);
-      if (betIndex === -1) {
-        socket.emit('ERROR', { message: 'No bet to cancel' });
-        return;
-      }
-
-      const bet = gameState.bets[betIndex];
-      gameState.bets.splice(betIndex, 1);
-
-      // Refund player in database
-      await refundPlayer(bet.userId, bet.amount, connectionId);
-
-      // Recalculate percentages
-      const newTotalPot = gameState.bets.reduce((sum, b) => sum + b.amount, 0);
-      gameState.totalPot = newTotalPot;
-
-      if (gameState.bets.length > 0) {
-        let startAngle = 0;
-        gameState.bets.forEach(b => {
-          b.percentage = (b.amount / newTotalPot) * 100;
-          b.startAngle = startAngle;
-          b.endAngle = startAngle + (b.percentage / 100) * 360;
-          startAngle = b.endAngle;
-        });
-      }
-      
-      // If bet count drops below minimum, stop countdown and go back to waiting
-      const uniquePlayers = new Set(gameState.bets.map(bet => bet.playerId));
-      if (uniquePlayers.size < MIN_PLAYERS_TO_START && gameState.status === 'countdown') {
-        if (countdownTimer) {
-          clearInterval(countdownTimer);
-          countdownTimer = null;
-        }
-        gameState.status = 'waiting';
-        gameState.timeRemaining = 0;
-      }
-
-      broadcastState();
-    });
-
-    // Handle CHAT_MESSAGE event
-    socket.on('CHAT_MESSAGE', (message: any) => {
-      const player = players.get(connectionId);
-      if (!player) return;
-
-      const chatMessage: ChatMessage = {
-        id: randomUUID(),
-        playerId: connectionId,
-        playerName: player.name,
-        message: message.message,
-        timestamp: Date.now()
-      };
-
-      gameState.chatMessages.push(chatMessage);
-      
-      // Keep only last 50 messages
-      if (gameState.chatMessages.length > 50) {
-        gameState.chatMessages = gameState.chatMessages.slice(-50);
-      }
-
-      // Broadcast chat message to all clients
-      io.emit('CHAT_MESSAGE', { message: chatMessage });
     });
 
     // Handle disconnect
-    socket.on('disconnect', () => {
+    ws.on('close', () => {
       console.log(`Rolls WebSocket connection closed: ${connectionId}`);
       
       // Remove player if they disconnect
       players.delete(connectionId);
+    });
+
+    ws.on('error', (error) => {
+      console.error(`Rolls WebSocket error for ${connectionId}:`, error);
     });
   });
 
@@ -463,5 +512,5 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
   startNewRound();
 
   console.log('Rolls WebSocket server initialized');
-  return io;
+  return wss;
 }
