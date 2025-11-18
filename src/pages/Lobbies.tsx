@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
 import { MobileMenu } from "@/components/MobileMenu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,7 +33,6 @@ interface Lobby {
 const Lobbies = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("lobbies");
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -194,15 +192,20 @@ const Lobbies = () => {
     }
   };
 
+  // Discrete bet values for slider
+  const betValues = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+  
   // Filter states
-  const [betRange, setBetRange] = useState([50, 500000]); // Min and Max bet
+  const [betRange, setBetRange] = useState([0, 12]); // Indices in betValues array
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([2, 3, 4, 6]); // All selected by default
   const [selectedDecks, setSelectedDecks] = useState<number[]>([24, 36, 52]); // All selected by default
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["подкидной", "переводной", "соседи_все"]); // All selected by default
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["подкидной", "переводной", "соседи", "все"]); // All selected by default
 
   const filteredLobbies = lobbies.filter(lobby => {
-    // Filter by bet amount range
-    if (lobby.bet_amount < betRange[0] || lobby.bet_amount > betRange[1]) return false;
+    // Filter by bet amount range using actual bet values
+    const minBet = betValues[betRange[0]];
+    const maxBet = betValues[betRange[1]];
+    if (lobby.bet_amount < minBet || lobby.bet_amount > maxBet) return false;
     
     // Filter by player count (only if any selected)
     if (selectedPlayers.length > 0 && !selectedPlayers.includes(lobby.max_players)) return false;
@@ -213,9 +216,8 @@ const Lobbies = () => {
     // Filter by game type (only if any selected)
     if (selectedTypes.length > 0) {
       const lobbyType = lobby.is_throw_in ? "подкидной" : "переводной";
-      // Note: "соседи_все" type is not yet implemented in the backend
-      // For now, it won't filter out any lobbies
-      if (!selectedTypes.includes(lobbyType) && !selectedTypes.includes("соседи_все")) return false;
+      // "все" means all types are included, "соседи" is not yet implemented
+      if (!selectedTypes.includes(lobbyType) && !selectedTypes.includes("все") && !selectedTypes.includes("соседи")) return false;
     }
     
     return true;
@@ -242,19 +244,13 @@ const Lobbies = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Header
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onMenuClick={() => {}}
         balance={0}
         onDepositClick={() => {}}
       />
 
       <div className="flex">
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
-          onDurakClick={() => navigate("/lobbies")}
-        />
-
-        <main className={`flex-1 pb-12 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}>
+        <main className="flex-1 pb-12">
           <section className="container px-4 py-8">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -369,30 +365,30 @@ const Lobbies = () => {
               
               {/* Bet Range Slider */}
               <div className="mb-6">
-                <Label className="mb-3 block">Диапазон ставок: <span className="font-bold">{betRange[0]} - {betRange[1]}</span> 💎</Label>
+                <Label className="mb-3 block">Диапазон ставок: <span className="font-bold">{betValues[betRange[0]].toLocaleString()} - {betValues[betRange[1]].toLocaleString()}</span> 💎</Label>
                 <div className="px-2">
                   <Slider
                     value={betRange}
                     onValueChange={setBetRange}
-                    min={50}
-                    max={500000}
-                    step={50}
-                    minStepsBetweenThumbs={1}
+                    min={0}
+                    max={betValues.length - 1}
+                    step={1}
+                    minStepsBetweenThumbs={0}
                     className="mb-2"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <div className="flex justify-between text-[9px] sm:text-xs text-muted-foreground mt-2 overflow-hidden">
                     <span>50</span>
-                    <span>100</span>
+                    <span className="hidden xs:inline">100</span>
                     <span>250</span>
-                    <span>500</span>
+                    <span className="hidden sm:inline">500</span>
                     <span>1K</span>
-                    <span>2.5K</span>
+                    <span className="hidden md:inline">2.5K</span>
                     <span>5K</span>
-                    <span>10K</span>
+                    <span className="hidden lg:inline">10K</span>
                     <span>25K</span>
-                    <span>50K</span>
+                    <span className="hidden xl:inline">50K</span>
                     <span>100K</span>
-                    <span>250K</span>
+                    <span className="hidden 2xl:inline">250K</span>
                     <span>500K</span>
                   </div>
                 </div>
@@ -444,7 +440,8 @@ const Lobbies = () => {
                     {[
                       { id: "подкидной", label: "Подкидной" },
                       { id: "переводной", label: "Переводной" },
-                      { id: "соседи_все", label: "Соседи все" }
+                      { id: "соседи", label: "Соседи" },
+                      { id: "все", label: "Все" }
                     ].map((type) => (
                       <div key={type.id} className="flex items-center space-x-2">
                         <Checkbox
