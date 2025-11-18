@@ -50,10 +50,19 @@ const Deposit = () => {
       return;
     }
 
-    if (depositAmount < 100) {
+    if (depositAmount < 300) {
       toast({
         title: "Ошибка",
-        description: "Минимальная сумма пополнения - 100 💎",
+        description: "Минимальная сумма пополнения - 300 💎",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (depositAmount > 50000) {
+      toast({
+        title: "Ошибка",
+        description: "Максимальная сумма пополнения - 50,000 💎",
         variant: "destructive",
       });
       return;
@@ -76,10 +85,19 @@ const Deposit = () => {
       return;
     }
 
-    if (withdrawalAmount < 100) {
+    if (withdrawalAmount < 500) {
       toast({
         title: "Ошибка",
-        description: "Минимальная сумма вывода - 100 💎",
+        description: "Минимальная сумма вывода - 500 💎",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (withdrawalAmount > 50000) {
+      toast({
+        title: "Ошибка",
+        description: "Максимальная сумма вывода - 50,000 💎",
         variant: "destructive",
       });
       return;
@@ -183,15 +201,16 @@ const Deposit = () => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       className="text-base md:text-lg h-12 md:h-auto"
-                      min="100"
+                      min="300"
+                      max="50000"
                     />
                     <p className="text-xs md:text-sm text-muted-foreground mt-2">
-                      Минимальная сумма: 100 💎
+                      Минимум: 300 💎 | Максимум: 50,000 💎
                     </p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    {[100, 500, 1000, 2500, 5000, 10000].map((value) => (
+                    {[300, 500, 1000, 2500, 5000, 10000].map((value) => (
                       <Button
                         key={value}
                         variant="outline"
@@ -212,7 +231,8 @@ const Deposit = () => {
                     <p className="font-semibold mb-1 text-sm md:text-base">Важная информация</p>
                     <ul className="text-xs md:text-sm text-muted-foreground space-y-1">
                       <li>• Пополнение происходит мгновенно</li>
-                      <li>• Минимальная сумма пополнения: 100 💎</li>
+                      <li>• Минимальная сумма: 300 💎</li>
+                      <li>• Максимальная сумма: 50,000 💎</li>
                       <li>• 1 алмаз = 1₽</li>
                       <li>• Для пополнения используйте Telegram Crypto Bot</li>
                     </ul>
@@ -224,7 +244,7 @@ const Deposit = () => {
                 size="lg"
                 className="w-full h-12 md:h-auto text-sm md:text-base"
                 onClick={handleDeposit}
-                disabled={!amount || parseInt(amount) < 100}
+                disabled={!amount || parseInt(amount) < 300 || parseInt(amount) > 50000}
               >
                 Пополнить на {amount || "0"} 💎
               </Button>
@@ -279,16 +299,16 @@ const Deposit = () => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       className="text-base md:text-lg h-12 md:h-auto"
-                      min="100"
-                      max={balance}
+                      min="500"
+                      max={Math.min(balance, 50000)}
                     />
                     <p className="text-xs md:text-sm text-muted-foreground mt-2">
-                      Минимальная сумма: 100 💎 | Доступно: {balance.toLocaleString()} 💎
+                      Минимум: 500 💎 | Максимум: 50,000 💎 | Доступно: {balance.toLocaleString()} 💎
                     </p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    {[100, 500, 1000, 2500, 5000, balance].map((value, index) => (
+                    {[500, 1000, 2500, 5000, 10000, Math.min(balance, 50000)].map((value, index) => (
                       <Button
                         key={index}
                         variant="outline"
@@ -296,7 +316,7 @@ const Deposit = () => {
                         className="w-full text-xs md:text-sm h-10 md:h-auto"
                         disabled={value > balance}
                       >
-                        {index === 5 ? "Все" : `${value} 💎`}
+                        {index === 5 ? "Макс" : `${value} 💎`}
                       </Button>
                     ))}
                   </div>
@@ -310,7 +330,8 @@ const Deposit = () => {
                     <p className="font-semibold mb-1 text-sm md:text-base">Важная информация</p>
                     <ul className="text-xs md:text-sm text-muted-foreground space-y-1">
                       <li>• Вывод обрабатывается в течение 24 часов</li>
-                      <li>• Минимальная сумма вывода: 100 💎</li>
+                      <li>• Минимальная сумма: 500 💎</li>
+                      <li>• Максимальная сумма: 50,000 💎</li>
                       <li>• 1 алмаз = 1₽</li>
                       <li>• Для вывода используйте Telegram Crypto Bot</li>
                     </ul>
@@ -322,7 +343,7 @@ const Deposit = () => {
                 size="lg"
                 className="w-full h-12 md:h-auto text-sm md:text-base"
                 onClick={handleWithdrawal}
-                disabled={!amount || parseInt(amount) < 100 || parseInt(amount) > balance}
+                disabled={!amount || parseInt(amount) < 500 || parseInt(amount) > Math.min(balance, 50000)}
               >
                 Вывести {amount || "0"} 💎
               </Button>

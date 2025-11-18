@@ -49,10 +49,19 @@ const Withdrawal = () => {
       return;
     }
 
-    if (withdrawalAmount < 100) {
+    if (withdrawalAmount < 500) {
       toast({
         title: "Ошибка",
-        description: "Минимальная сумма вывода - 100 💎",
+        description: "Минимальная сумма вывода - 500 💎",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (withdrawalAmount > 50000) {
+      toast({
+        title: "Ошибка",
+        description: "Максимальная сумма вывода - 50,000 💎",
         variant: "destructive",
       });
       return;
@@ -151,17 +160,17 @@ const Withdrawal = () => {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="text-lg"
-                    min="100"
-                    max={balance}
+                    min="500"
+                    max={Math.min(balance, 50000)}
                   />
                   <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                    <p>Минимальная сумма: 100 💎</p>
-                    <p>Доступно: {balance} 💎</p>
+                    <p>Минимум: 500 💎 | Максимум: 50,000 💎</p>
+                    <p>Доступно: {balance.toLocaleString()} 💎</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {[100, 500, 1000, 2500, 5000].map((value) => (
+                  {[500, 1000, 2500, 5000, 10000].map((value) => (
                     <Button
                       key={value}
                       variant="outline"
@@ -174,10 +183,11 @@ const Withdrawal = () => {
                   ))}
                   <Button
                     variant="outline"
-                    onClick={() => setAmount(balance.toString())}
+                    onClick={() => setAmount(Math.min(balance, 50000).toString())}
                     className="w-full"
+                    disabled={balance < 500}
                   >
-                    Всё
+                    Макс
                   </Button>
                 </div>
               </div>
@@ -190,7 +200,8 @@ const Withdrawal = () => {
                   <p className="font-semibold mb-1">Внимание</p>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Вывод обрабатывается в течение 24 часов</li>
-                    <li>• Минимальная сумма вывода: 100 💎</li>
+                    <li>• Минимальная сумма вывода: 500 💎</li>
+                    <li>• Максимальная сумма вывода: 50,000 💎</li>
                     <li>• Комиссия сети взимается отдельно</li>
                     <li>• Убедитесь, что указали правильные реквизиты</li>
                   </ul>
@@ -216,7 +227,7 @@ const Withdrawal = () => {
               size="lg"
               className="w-full"
               onClick={handleWithdrawal}
-              disabled={!amount || parseInt(amount) < 100 || parseInt(amount) > balance}
+              disabled={!amount || parseInt(amount) < 500 || parseInt(amount) > Math.min(balance, 50000)}
             >
               Вывести {amount || "0"} 💎
             </Button>

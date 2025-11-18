@@ -437,7 +437,19 @@ const RollsGame = () => {
                         <Input
                           type="number"
                           value={betAmount}
-                          onChange={(e) => setBetAmount(Number(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || value === '0') {
+                              setBetAmount(0);
+                            } else {
+                              setBetAmount(Number(value));
+                            }
+                          }}
+                          onFocus={(e) => {
+                            if (betAmount === 0) {
+                              e.target.select();
+                            }
+                          }}
                           className="flex-1 bg-slate-800 border-purple-500/30 text-white text-center"
                           min="10"
                           max={balance}

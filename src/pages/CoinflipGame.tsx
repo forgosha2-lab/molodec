@@ -337,7 +337,19 @@ const CoinflipGame = () => {
                     <Input
                       type="number"
                       value={betAmount}
-                      onChange={(e) => setBetAmount(Number(e.target.value))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || value === '0') {
+                          setBetAmount(0);
+                        } else {
+                          setBetAmount(Number(value));
+                        }
+                      }}
+                      onFocus={(e) => {
+                        if (betAmount === 0) {
+                          e.target.select();
+                        }
+                      }}
                       disabled={gameStatus !== 'idle'}
                       className="flex-1 bg-slate-700 border-purple-500/30 text-white text-center text-sm md:text-base h-8 md:h-10"
                       min="1"
