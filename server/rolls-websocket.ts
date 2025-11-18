@@ -286,9 +286,12 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
     });
 
     // Handle messages
-    ws.on('message', async (message: string) => {
+    ws.on('message', async (message: Buffer | string) => {
       try {
-        const parsed: WebSocketMessage = JSON.parse(message.toString());
+        const messageStr = message.toString();
+        console.log(`[Rolls WS ${connectionId}] Raw message:`, messageStr);
+        const parsed: WebSocketMessage = JSON.parse(messageStr);
+        console.log(`[Rolls WS ${connectionId}] Parsed message:`, parsed.type, parsed.data);
         
         switch (parsed.type) {
           case 'JOIN': {
@@ -490,7 +493,7 @@ export function setupRollsWebSocket(httpServer: HTTPServer) {
           }
         }
       } catch (error) {
-        console.error('Error handling message:', error);
+        console.error(`[Rolls WS ${connectionId}] Error handling message:`, error);
         sendToClient(ws, 'ERROR', { message: 'Invalid message format' });
       }
     });

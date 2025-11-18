@@ -6,6 +6,18 @@ PPYLSE is a multi-game web platform featuring classic card games (Durak, UNO) an
 
 ## Recent Changes
 
+### November 18, 2025 - Rolls WebSocket Native Implementation
+
+**Rolls WebSocket Migration - COMPLETED**: Migrated Rolls game back to native WebSocket (ws library) for reliability:
+- ✅ Rewrote Rolls WebSocket from Socket.IO to native WebSocket using working example from `вебсокет_пример`
+- ✅ Implemented message queue mechanism in `useRollsWebSocket.ts` to solve race condition where messages sent before socket fully opened
+- ✅ Added environment-aware URL configuration: direct port 3003 connection in Replit dev, proxy-based in production
+- ✅ Verified WebSocket connects successfully and sends/receives messages (JOIN, PLACE_BET, CHAT_MESSAGE, STATE_SYNC)
+- ✅ Fixed client-side message sending - queued messages automatically sent when socket opens
+- ✅ Server properly receives and parses all message types with full logging
+- ✅ Solution works in Replit development environment and prepared for HTTPS production deployment
+- ✅ Cleaned up debug console.log statements after successful testing
+
 ### November 17, 2025 - Major Feature Additions and Enhancements
 
 **Rolls Game Logic Rewrite - COMPLETED**: Implemented new betting flow and countdown system:
@@ -142,10 +154,11 @@ Preferred communication style: Simple, everyday language.
 **API Design**: RESTful endpoints for game state management, user authentication, and profile data
 
 **Real-time Communication**: 
-- Socket.IO for Rolls (/ws-rolls) and UNO (/ws-uno) games with Bun-compatible implementation
-- Native WebSocket (ws library) for Crash game (/ws) - intentionally kept separate
-- Custom game logic modules (uno-game-logic.js, durak-server.js, crash-websocket.js)
-- Client hooks: useRollsWebSocket, useUnoWebSocket (socket.io-client), useWebSocket (native WebSocket)
+- Native WebSocket (ws library) for Rolls (/ws-rolls) and Crash (/ws) games with message queue for reliable delivery
+- Socket.IO for UNO (/ws-uno) game with Bun-compatible implementation
+- Custom game logic modules (uno-game-logic.js, durak-server.js, rolls-websocket.ts, crash-websocket.js)
+- Client hooks: useRollsWebSocket (native WebSocket with queue), useUnoWebSocket (socket.io-client), useWebSocket (native WebSocket for Crash)
+- Environment-aware WebSocket URL: direct port 3003 in Replit dev, proxy-based in production for HTTPS support
 
 **Data Layer**:
 - Drizzle ORM with PostgreSQL (Neon) for type-safe database operations
@@ -208,9 +221,10 @@ Preferred communication style: Simple, everyday language.
 ### External Dependencies
 
 **Real-time Gaming**:
-- Socket.IO v4 for Rolls and UNO games (better Bun runtime compatibility)
-- Native WebSocket (ws library) for Crash game only
+- Native WebSocket (ws library) for Rolls and Crash games with message queueing for race condition prevention
+- Socket.IO v4 for UNO game (better Bun runtime compatibility)
 - Custom WebSocket servers embedded in Express app via http.createServer
+- Environment-aware URL resolution (Replit dev vs production HTTPS)
 - Hybrid approach allows per-game protocol optimization
 
 **Telegram Platform**:

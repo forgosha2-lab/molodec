@@ -22,6 +22,11 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:3003',
         ws: true,
         changeOrigin: true
+      },
+      '/ws-rolls': {
+        target: 'http://localhost:3003',
+        ws: true,
+        changeOrigin: true
       }
     }
   },

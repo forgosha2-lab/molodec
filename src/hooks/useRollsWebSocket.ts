@@ -54,6 +54,7 @@ export function useRollsWebSocket() {
   
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messageQueueRef = useRef<Array<{ type: string; data?: any }>>([]);
 
   const connect = useCallback(() => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -63,17 +64,36 @@ export function useRollsWebSocket() {
     setStatus('connecting');
     setError(null);
 
+    // Determine WebSocket URL based on environment
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socketUrl = `${protocol}//${window.location.host}/ws-rolls`;
+    
+    // In Replit dev environment (or when proxy isn't working), connect directly to backend port
+    // Check if we're in development mode and not on standard localhost
+    const isReplitDev = import.meta.env.DEV && !window.location.hostname.includes('localhost');
+    
+    const socketUrl = isReplitDev
+      ? `${protocol}//${window.location.hostname}:3003/ws-rolls`
+      : `${protocol}//${window.location.host}/ws-rolls`;
     
     try {
       const socket = new WebSocket(socketUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
-        console.log('Rolls WebSocket connected');
+        console.log('[Rolls WS Client] WebSocket connected');
         setStatus('connected');
         setError(null);
+        
+        // Send all queued messages
+        console.log('[Rolls WS Client] Sending queued messages:', messageQueueRef.current.length);
+        while (messageQueueRef.current.length > 0) {
+          const msg = messageQueueRef.current.shift();
+          if (msg && socket.readyState === WebSocket.OPEN) {
+            const message = JSON.stringify({ type: msg.type, data: msg.data });
+            console.log('[Rolls WS Client] Sending queued message:', msg.type, msg.data);
+            socket.send(message);
+          }
+        }
       };
 
       socket.onmessage = (event) => {
@@ -143,13 +163,13 @@ export function useRollsWebSocket() {
         }
       };
 
-      socket.onclose = () => {
-        console.log('Rolls WebSocket disconnected');
+      socket.onclose = (event) => {
+        console.log('[Rolls WS Client] WebSocket disconnected. Code:', event.code, 'Reason:', event.reason);
         setStatus('disconnected');
         
         // Attempt to reconnect after 3 seconds
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('Attempting to reconnect...');
+          console.log('[Rolls WS Client] Attempting to reconnect...');
           connect();
         }, 3000);
       };
@@ -189,9 +209,13 @@ export function useRollsWebSocket() {
 
   const sendMessage = useCallback((type: string, data?: any) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type, data }));
+      const message = JSON.stringify({ type, data });
+      console.log('[Rolls WS Client] Sending message:', type, data);
+      socketRef.current.send(message);
     } else {
-      setError('Нет подключения к серверу');
+      // Queue the message to be sent when connection opens
+      console.log('[Rolls WS Client] Queueing message - socket not open. ReadyState:', socketRef.current?.readyState);
+      messageQueueRef.current.push({ type, data });
     }
   }, []);
 
